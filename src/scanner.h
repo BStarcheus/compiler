@@ -26,6 +26,6 @@ class Scanner {
         int lineNum;
         std::unordered_map<char, CharClass> charClass;
         int getCharClass(char c);
-        int scanToken();
+        Token scanToken();
 };
 #endif

@@ -86,7 +86,6 @@ Scanner::Scanner() {
     charClass[':'] = SPECIAL;
     charClass[';'] = SPECIAL;
     charClass['\"'] = SPECIAL;
-    charClass['|'] = SPECIAL;
     charClass[','] = SPECIAL;
     charClass['.'] = SPECIAL;
     charClass['<'] = SPECIAL;
@@ -108,8 +107,7 @@ bool Scanner::openFile(std::string filename) {
 }
 
 Token Scanner::scan() {
-    Token token = Token();
-    token.type = scanToken();
+    Token token = scanToken();
 
     // Handle adding to symbol table
 
@@ -121,41 +119,180 @@ int Scanner::getCharClass(char c) {
         // Invalid character to start a token
         // or EOF
         return -1;
-    } else {
-        return charClass[c];
     }
+    return charClass[c];
 }
 
-int Scanner::scanToken() {
+Token Scanner::scanToken() {
+    Token token = Token();
+
     if (!file.is_open()) {
         // REPORT ERROR
-        return T_EOF;
+        token.type = T_UNK;
+        return token;
     }
 
-    char ch = file.get();
-    int chClass = getCharClass(ch);
-    
-    // Grab whitespace
-    while (chClass == SPACE) {
-        if (ch == '\n') lineNum++;
-        ch = file.get();
-        chClass = getCharClass(ch);
-    }
+    char ch, nextCh;
+    int chClass;
+
+    do {
+        // Grab whitespace
+        do {
+            ch = file.get();
+            if (ch == '\n') lineNum++;
+            chClass = getCharClass(ch);
+        } while (chClass == SPACE);
+
+        // Grab comments
+        if (ch == '/') {
+            nextCh = file.get();
+
+            if (nextCh == '/') {
+                // Single line comment
+                do {
+                    nextCh = file.get();
+                } while (nextCh != '\n' && nextCh != EOF);
+                file.unget();
+
+            } else if (nextCh == '*') {
+                // Multiline comment
+                // Allow nested comments
+
+                int nestLayer = 1;
+                while (nestLayer > 0) {
+                    nextCh = file.get();
+
+                    if (nextCh == '*') {
+                        nextCh = file.get();
+                        if (nextCh == '/') {
+                            // Close
+                            nestLayer--;
+                        }
+                    } else if (nextCh == '/') {
+                        nextCh = file.get();
+                        if (nextCh == '*') {
+                            nestLayer++;
+                        }
+                    }
+                }
+            } else {
+                // Division handled below
+                file.unget();
+                break;
+            }
+        }
+    } while (chClass == SPACE || ch == '/');
 
     switch (chClass) {
         case SPECIAL:
-            return T_PERIOD;
+            switch (ch) {
+                // Single char tokens
+                case '.': token.type = T_PERIOD; break;
+                case ',': token.type = T_COMMA; break;
+                case ';': token.type = T_SEMICOLON; break;
+                case '(': token.type = T_LPAREN; break;
+                case ')': token.type = T_RPAREN; break;
+                case '[': token.type = T_LBRACKET; break;
+                case ']': token.type = T_RBRACKET; break;
+                case '{': token.type = T_LBRACE; break;
+                case '}': token.type = T_RBRACE; break;
+                case '+': token.type = T_PLUS; break;
+                case '-': token.type = T_MINUS; break;
+                case '*': token.type = T_MULTIPLY; break;
+                case '/': token.type = T_DIVIDE; break;
+                case '&': token.type = T_AND; break;
+                case '|': token.type = T_OR; break;
+
+                // Operators
+                case '<':
+                    ch = file.get();
+                    if (ch == '=') {
+                        token.type = T_LESS_EQ;
+                    } else {
+                        file.unget();
+                        token.type = T_LESS;
+                    }
+                    break;
+                case '>':
+                    ch = file.get();
+                    if (ch == '=') {
+                        token.type = T_GREATER_EQ;
+                    } else {
+                        file.unget();
+                        token.type = T_GREATER;
+                    }
+                    break;
+                case '=':
+                    ch = file.get();
+                    if (ch == '=') {
+                        token.type = T_EQUAL;
+                    } else {
+                        file.unget();
+                        token.type = T_UNK;
+                    }
+                    break;
+                case '!':
+                    ch = file.get();
+                    if (ch == '=') {
+                        token.type = T_NOT_EQUAL;
+                    } else {
+                        file.unget();
+                        token.type = T_UNK;
+                    }
+                    break;
+                case ':':
+                    ch = file.get();
+                    if (ch == '=') {
+                        token.type = T_ASSIGNMENT;
+                    } else {
+                        file.unget();
+                        token.type = T_UNK;
+                    }
+                    break;
+
+                // Strings
+                case '\"': {
+                    token.type = T_STRING_VAL;
+                    int i = 0;
+
+                    ch = file.get();
+                    while (ch != '\"') {
+                        if (ch == '\n' || ch == EOF) {
+                            token.type = T_UNK;
+                            // TODO Report error
+                            break;
+                        } else if (i >= 255) {
+                            // TODO Report error value too large
+                            break;
+                        }
+
+                        token.val.strVal[i++] = ch;
+                        ch = file.get();
+                    }
+                    token.val.strVal[i] = '\0';
+                    break;
+                }
+
+                default: token.type = T_UNK; break;
+            }
+            break;
 
         case NUM:
-            return T_NUMBER_VAL;
+            token.type = T_NUMBER_VAL;
+            break;
 
         case LC_ALPHA:
         case UC_ALPHA:
-            return T_IDENTIFIER;
+            token.type = T_IDENTIFIER;
+            break;
 
         default:
-            if (ch == EOF) return T_EOF;
-
-            return T_UNK;
+            if (ch == EOF) {
+                token.type = T_EOF;
+            } else {
+                token.type = T_UNK;
+            }
+            break;
     }
+    return token;
 }

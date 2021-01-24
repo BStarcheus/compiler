@@ -37,18 +37,18 @@ enum TokenType {
     T_RBRACE = '}',
     T_PLUS = '+',
     T_MINUS = '-',
-    T_ASTERISK = '*',
-    T_FSLASH = '/',
+    T_MULTIPLY = '*',
+    T_DIVIDE = '/',
     T_LESS = '<',
     T_GREATER = '>',
+    T_AND = '&',
+    T_OR = '|',
     
     // Operators
     T_LESS_EQ = 280,
     T_GREATER_EQ = 281,
     T_EQUAL = 282,
     T_NOT_EQUAL = 283,
-    T_AND = 284,
-    T_OR = 285,
     T_ASSIGNMENT = 286,
 
     T_IDENTIFIER = 300,

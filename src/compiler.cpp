@@ -11,8 +11,10 @@ int main(int argc, char* argv[]) {
 
     while (token.type != T_EOF) {
         token = s.scan();
-        std::cout << token.type << std::endl;
+        std::cout << token.type << "  ";
+        std::cout << token.val.strVal;
+        std::cout << std::endl;
     }
-    
+
     return 0;
 }
