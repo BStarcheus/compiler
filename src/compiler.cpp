@@ -2,8 +2,6 @@
 #include <iostream>
 
 int main(int argc, char* argv[]) {
-    using namespace std;
-
     if (argc < 2) return 1;
 
     Scanner s;
@@ -13,8 +11,8 @@ int main(int argc, char* argv[]) {
 
     while (token.type != T_EOF) {
         token = s.scan();
-        cout << token.type << endl;
+        std::cout << token.type << std::endl;
     }
-
+    
     return 0;
 }

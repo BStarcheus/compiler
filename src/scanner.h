@@ -2,9 +2,18 @@
 #define SCANNER_H
 
 #include "token.h"
-#include "macro.h"
+#include "tokenType.h"
 #include <string>
 #include <fstream>
+#include <unordered_map>
+
+enum CharClass { 
+    NUM,
+    LC_ALPHA,
+    UC_ALPHA,
+    SPACE,
+    SPECIAL
+};
 
 class Scanner {
     public:
@@ -15,6 +24,8 @@ class Scanner {
     private:
         std::ifstream file;
         int lineNum;
+        std::unordered_map<char, CharClass> charClass;
+        int getCharClass(char c);
         int scanToken();
 };
 #endif

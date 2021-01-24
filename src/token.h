@@ -9,5 +9,4 @@ struct Token {
         double dblVal;
     } val;
 };
-
 #endif
