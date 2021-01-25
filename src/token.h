@@ -6,7 +6,7 @@ struct Token {
     union {
         char strVal[256];
         int intVal;
-        double dblVal;
+        float floatVal;
     } val;
 };
 #endif

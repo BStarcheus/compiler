@@ -1,7 +1,10 @@
 #include "scanner.h"
 #include <iostream>
+#include <iomanip>
 
-Scanner::Scanner() {
+Scanner::Scanner(bool dbg) {
+    debugFlag = dbg;
+
     // Init character class map
     // Defines all characters that could signal start of tokens
     // Note: Other characters are legal in strings, but token starts with quote
@@ -98,16 +101,48 @@ Scanner::~Scanner() {
 }
 
 bool Scanner::openFile(std::string filename) {
+    this->filename = filename;
     file.open(filename);
     if (file.is_open()) {
         lineNum = 1;
+        errorFlag = false;
         return true;
     }
+    errorFlag = true;
     return false;
+}
+
+void Scanner::error(std::string msg) {
+    std::cout << filename << ":" << std::left << std::setw(4);
+    std::cout << lineNum << "  Error: " << msg << std::endl;
+}
+void Scanner::warning(std::string msg) {
+    std::cout << filename << ":" << std::left << std::setw(4);
+    std::cout << lineNum << "  Warning: " << msg << std::endl;
+}
+void Scanner::debug(std::string msg) {
+    if (debugFlag) {
+        std::cout << msg << std::endl;
+    }
+}
+void Scanner::debug(Token t) {
+    if (debugFlag) {
+        std::cout << "token: " << std::left;
+        std::cout << std::setw(15) << getTokenTypeName(t);
+        if (t.type == T_STRING_VAL || t.type == T_IDENTIFIER) {
+            std::cout << t.val.strVal;
+        } else if (t.type == T_INTEGER_VAL) {
+            std::cout << t.val.intVal;
+        } else if (t.type == T_FLOAT_VAL) {
+            std::cout << t.val.floatVal;
+        }
+        std::cout << std::endl;
+    }
 }
 
 Token Scanner::scan() {
     Token token = scanToken();
+    debug(token);
 
     // Handle adding to symbol table
 
@@ -115,10 +150,11 @@ Token Scanner::scan() {
 }
 
 int Scanner::getCharClass(char c) {
-    if (charClass.find(c) == charClass.end()) {
-        // Invalid character to start a token
-        // or EOF
+    if (c == -1) {
         return -1;
+    } else if (charClass.find(c) == charClass.end()) {
+        // Invalid character
+        return -2;
     }
     return charClass[c];
 }
@@ -127,7 +163,8 @@ Token Scanner::scanToken() {
     Token token = Token();
 
     if (!file.is_open()) {
-        // REPORT ERROR
+        errorFlag = true;
+        error("File is not open");
         token.type = T_UNK;
         return token;
     }
@@ -136,12 +173,17 @@ Token Scanner::scanToken() {
     int chClass;
 
     do {
-        // Grab whitespace
+        // Grab whitespace and invalid chars
         do {
             ch = file.get();
             if (ch == '\n') lineNum++;
+
             chClass = getCharClass(ch);
-        } while (chClass == SPACE);
+            if (chClass == -2) {
+                errorFlag = true;
+                error("Invalid character");
+            }
+        } while (chClass == SPACE || chClass == -2);
 
         // Grab comments
         if (ch == '/') {
@@ -173,6 +215,11 @@ Token Scanner::scanToken() {
                         if (nextCh == '*') {
                             nestLayer++;
                         }
+                    } 
+                    
+                    // Add newline if found in any of the above execution paths
+                    if (nextCh == '\n') {
+                        lineNum++;
                     }
                 }
             } else {
@@ -181,6 +228,8 @@ Token Scanner::scanToken() {
                 break;
             }
         }
+    // If you hit the if block above for comments, ch will always be / here,
+    // so it will loop back to the whitespace block and get the next ch
     } while (chClass == SPACE || ch == '/');
 
     switch (chClass) {
@@ -258,11 +307,13 @@ Token Scanner::scanToken() {
                     ch = file.get();
                     while (ch != '\"') {
                         if (ch == '\n' || ch == EOF) {
+                            file.unget();
                             token.type = T_UNK;
                             // TODO Report error
                             break;
                         } else if (i >= 255) {
-                            // TODO Report error value too large
+                            errorFlag = true;
+                            error("String value too large for buffer");
                             break;
                         }
 
@@ -277,10 +328,36 @@ Token Scanner::scanToken() {
             }
             break;
 
-        case NUM:
-            token.type = T_NUMBER_VAL;
-            break;
+        case NUM: {
+            std::string str = "";
+            do {
+                if (ch != '_') str += ch;
+                ch = file.get();
+            } while (getCharClass(ch) == NUM || ch == '_');
 
+            if (ch == '.') {
+                // Float
+                do {
+                    if (ch != '_') str += ch;
+                    ch = file.get();
+                } while (getCharClass(ch) == NUM || ch == '_');
+                
+                token.type = T_FLOAT_VAL;
+                token.val.floatVal = std::stof(str);
+
+                // Put back char from next token
+                file.unget();
+
+            } else {
+                // Integer
+                token.type = T_INTEGER_VAL;
+                token.val.intVal = std::stoi(str);
+
+                // Put back char from next token
+                file.unget();
+            }
+            break;
+        }
         case LC_ALPHA:
         case UC_ALPHA:
             token.type = T_IDENTIFIER;

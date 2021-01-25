@@ -54,10 +54,14 @@ enum TokenType {
     T_IDENTIFIER = 300,
 
     // Constants
-    T_NUMBER_VAL = 305,
-    T_STRING_VAL = 306,
+    T_INTEGER_VAL = 305,
+    T_FLOAT_VAL = 306,
+    T_STRING_VAL = 307,
 
     T_EOF = 349,
     T_UNK = 350
 };
+
+const char* getTokenTypeName(Token t);
+
 #endif

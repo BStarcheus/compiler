@@ -1,0 +1,19 @@
+// This is "all" a comment
+"Hello there"
+
+~
+/* This is a test**
+of more/
+stuff /* nested */ / /
+*/~~~
+
+//
+11 12 1.123
+1_123
+1_123.31_
+
+x := 1_.1_2_3;
+
+/**/
+
+"This is the end"
