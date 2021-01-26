@@ -10,7 +10,8 @@ enum CharClass {
     LC_ALPHA,
     UC_ALPHA,
     SPACE,
-    SPECIAL
+    SPECIAL,
+    INVALID = -2
 };
 
 class Scanner {

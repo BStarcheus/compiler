@@ -154,11 +154,11 @@ Token Scanner::scan() {
 }
 
 int Scanner::getCharClass(char c) {
-    if (c == -1) {
-        return -1;
+    if (c == EOF) {
+        return EOF;
     } else if (charClass.find(c) == charClass.end()) {
         // Invalid character
-        return -2;
+        return INVALID;
     }
     return charClass[c];
 }
@@ -183,11 +183,11 @@ Token Scanner::scanToken() {
             if (ch == '\n') lineNum++;
 
             chClass = getCharClass(ch);
-            if (chClass == -2) {
+            if (chClass == INVALID) {
                 errorFlag = true;
                 error("Invalid character");
             }
-        } while (chClass == SPACE || chClass == -2);
+        } while (chClass == SPACE || chClass == INVALID);
 
         // Grab comments
         if (ch == '/') {
