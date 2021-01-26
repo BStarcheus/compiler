@@ -1,4 +1,3 @@
-#include "token.h"
 #include "tokenType.h"
 
 // Get token name from type number

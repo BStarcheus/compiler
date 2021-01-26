@@ -122,21 +122,15 @@ void Scanner::warning(std::string msg) {
 }
 void Scanner::debug(std::string msg) {
     if (debugFlag) {
-        std::cout << msg << std::endl;
+        std::cout << filename << ":" << std::left << std::setw(4);
+        std::cout << lineNum << "  Debug: " << msg << std::endl;
     }
 }
 void Scanner::debug(Token t) {
     if (debugFlag) {
         std::cout << "token: " << std::left;
         std::cout << std::setw(15) << getTokenTypeName(t);
-        if (t.type == T_STRING_VAL || t.type == T_IDENTIFIER) {
-            std::cout << t.val.strVal;
-        } else if (t.type == T_INTEGER_VAL) {
-            std::cout << t.val.intVal;
-        } else if (t.type == T_FLOAT_VAL) {
-            std::cout << t.val.floatVal;
-        }
-        std::cout << std::endl;
+        std::cout << t.val << std::endl;
     }
 }
 
@@ -302,7 +296,6 @@ Token Scanner::scanToken() {
                 // Strings
                 case '\"': {
                     token.type = T_STRING_VAL;
-                    int i = 0;
 
                     ch = file.get();
                     while (ch != '\"') {
@@ -314,16 +307,10 @@ Token Scanner::scanToken() {
                             errorFlag = true;
                             error("String value missing closing quote");
                             break;
-                        } else if (i >= 255) {
-                            errorFlag = true;
-                            error("String value too large for buffer");
-                            break;
                         }
-
-                        token.val.strVal[i++] = ch;
+                        token.val += ch;
                         ch = file.get();
                     }
-                    token.val.strVal[i] = '\0';
                     break;
                 }
 
@@ -332,21 +319,19 @@ Token Scanner::scanToken() {
             break;
 
         case NUM: {
-            std::string str = "";
             do {
-                if (ch != '_') str += ch;
+                if (ch != '_') token.val += ch;
                 ch = file.get();
             } while (getCharClass(ch) == NUM || ch == '_');
 
             if (ch == '.') {
                 // Float
                 do {
-                    if (ch != '_') str += ch;
+                    if (ch != '_') token.val += ch;
                     ch = file.get();
                 } while (getCharClass(ch) == NUM || ch == '_');
                 
                 token.type = T_FLOAT_VAL;
-                token.val.floatVal = std::stof(str);
 
                 // Put back char from next token
                 file.unget();
@@ -354,7 +339,6 @@ Token Scanner::scanToken() {
             } else {
                 // Integer
                 token.type = T_INTEGER_VAL;
-                token.val.intVal = std::stoi(str);
 
                 // Put back char from next token
                 file.unget();

@@ -1,9 +1,7 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-#include "token.h"
 #include "tokenType.h"
-#include <string>
 #include <fstream>
 #include <unordered_map>
 

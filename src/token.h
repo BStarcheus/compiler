@@ -1,12 +1,12 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include <string>
+
 struct Token {
     int type;
-    union {
-        char strVal[256];
-        int intVal;
-        float floatVal;
-    } val;
+    std::string val;
+    int getIntVal() { return std::stoi(val); }
+    float getFloatVal() { return std::stof(val); }
 };
 #endif

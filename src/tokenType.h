@@ -1,6 +1,8 @@
 #ifndef TOKENTYPE_H
 #define TOKENTYPE_H
 
+#include "token.h"
+
 enum TokenType {
     // Reserved words
     T_PROGRAM = 257,
