@@ -306,10 +306,13 @@ Token Scanner::scanToken() {
 
                     ch = file.get();
                     while (ch != '\"') {
-                        if (ch == '\n' || ch == EOF) {
+                        if (ch == '\n') {
+                            lineNum++;
+                        } else if (ch == EOF) {
                             file.unget();
                             token.type = T_UNK;
-                            // TODO Report error
+                            errorFlag = true;
+                            error("String value missing closing quote");
                             break;
                         } else if (i >= 255) {
                             errorFlag = true;
