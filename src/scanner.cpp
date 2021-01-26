@@ -1,6 +1,10 @@
 #include "scanner.h"
+#include "symbolTable.h"
 #include <iostream>
 #include <iomanip>
+
+// Global
+SymbolTable symb;
 
 Scanner::Scanner(bool dbg) {
     debugFlag = dbg;
@@ -138,7 +142,13 @@ Token Scanner::scan() {
     Token token = scanToken();
     debug(token);
 
-    // Handle adding to symbol table
+    // Add to symbol table
+    if (token.type == T_IDENTIFIER ||
+        token.type == T_INTEGER_VAL ||
+        token.type == T_FLOAT_VAL ||
+        token.type == T_STRING_VAL) {
+        symb.setSymbol(token.val, token);
+    }
 
     return token;
 }

@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "symbolTable.h"
 #include <iostream>
 
 int main(int argc, char* argv[]) {
