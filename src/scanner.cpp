@@ -316,7 +316,6 @@ Token Scanner::scanToken() {
                         if (ch == '\n') {
                             lineNum++;
                         } else if (ch == EOF) {
-                            file.unget();
                             token.type = T_UNK;
                             errorFlag = true;
                             error("String value missing closing quote");
@@ -336,14 +335,16 @@ Token Scanner::scanToken() {
             do {
                 if (ch != '_') token.val += ch;
                 ch = file.get();
-            } while (getCharClass(ch) == NUM || ch == '_');
+                chClass = getCharClass(ch);
+            } while (chClass == NUM || ch == '_');
 
             if (ch == '.') {
                 // Float
                 do {
                     if (ch != '_') token.val += ch;
                     ch = file.get();
-                } while (getCharClass(ch) == NUM || ch == '_');
+                    chClass = getCharClass(ch);
+                } while (chClass == NUM || ch == '_');
                 
                 token.type = T_FLOAT_VAL;
 
