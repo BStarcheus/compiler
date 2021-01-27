@@ -22,5 +22,11 @@ int main(int argc, char* argv[]) {
         token = s.scan();
     } while (token.type != T_EOF);
 
+    std::cout << std::endl << std::endl << "Symbol Table:" << std::endl;
+    // Check symbol table entries
+    for (SymTabMap::iterator it = symb.begin(); it != symb.end(); ++it) {
+        std::cout << getTokenTypeName(it->second) << " " << it->second.val << std::endl;
+    }
+
     return 0;
 }

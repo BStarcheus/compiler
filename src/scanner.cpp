@@ -180,10 +180,11 @@ Token Scanner::scanToken() {
         // Grab whitespace and invalid chars
         do {
             ch = file.get();
-            if (ch == '\n') lineNum++;
-
             chClass = getCharClass(ch);
-            if (chClass == INVALID) {
+            
+            if (ch == '\n') {
+                lineNum++;
+            } else if (chClass == INVALID) {
                 errorFlag = true;
                 error("Invalid character");
             }
@@ -362,7 +363,32 @@ Token Scanner::scanToken() {
         }
         case LC_ALPHA:
         case UC_ALPHA:
-            token.type = T_IDENTIFIER;
+            do {
+                if (chClass == UC_ALPHA) {
+                    // Type insensitive
+                    // All keywords and id's stored lowercase
+                    ch += ('a' - 'A');
+                }
+                token.val += ch;
+
+                ch = file.get();
+                chClass = getCharClass(ch);
+            } while (chClass == LC_ALPHA ||
+                     chClass == UC_ALPHA ||
+                     chClass == NUM ||
+                     ch == '_');
+
+            // Put back char from next token
+            file.unget();
+
+            if (symb.hasSybmol(token.val)) {
+                // Reserved word, or id already in table
+                token.type = symb.getSymbol(token.val).type;
+            } else {
+                // New id
+                token.type = T_IDENTIFIER;
+                // Inserted into table in scan()
+            }
             break;
 
         default:

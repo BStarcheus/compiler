@@ -33,3 +33,14 @@ void SymbolTable::setSymbol(std::string s, Token t) {
 Token SymbolTable::getSymbol(std::string s) {
     return symbolTable[s];
 }
+
+bool SymbolTable::hasSybmol(std::string s) {
+    return symbolTable.find(s) != symbolTable.end();
+}
+
+std::unordered_map<std::string, Token>::iterator SymbolTable::begin(){
+    return symbolTable.begin();
+}
+std::unordered_map<std::string, Token>::iterator SymbolTable::end(){
+    return symbolTable.end();
+}

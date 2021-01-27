@@ -5,14 +5,18 @@
 #include <string>
 #include <unordered_map>
 
-// Placeholder
+typedef std::unordered_map<std::string, Token> SymTabMap;
+
 class SymbolTable {
     public:
         SymbolTable();
         void setSymbol(std::string s, Token t);
         Token getSymbol(std::string s);
+        bool hasSybmol(std::string s);
+        SymTabMap::iterator begin();
+        SymTabMap::iterator end();
     private:
-        std::unordered_map<std::string, Token> symbolTable;
+        SymTabMap symbolTable;
 };
 
 extern SymbolTable symb;
