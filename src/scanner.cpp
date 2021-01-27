@@ -221,9 +221,13 @@ Token Scanner::scanToken() {
                         }
                     } 
                     
-                    // Add newline if found in any of the above execution paths
                     if (nextCh == '\n') {
+                        // Add newline if found in any of the above execution paths
                         lineNum++;
+                    } else if (nextCh == EOF) {
+                        // Valid to hit EOF with no close
+                        // Return EOF token
+                        break;
                     }
                 }
             } else {
@@ -234,7 +238,7 @@ Token Scanner::scanToken() {
         }
     // If you hit the if block above for comments, ch will always be / here,
     // so it will loop back to the whitespace block and get the next ch
-    } while (chClass == SPACE || ch == '/');
+    } while (ch == '/');
 
     switch (chClass) {
         case SPECIAL:
