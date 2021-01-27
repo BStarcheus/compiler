@@ -1,0 +1,19 @@
+// This is "all" a comment
+/* This is a test**
+of more/
+stuff /* nested */ / /
+*//~
+//
+/**/
+
+"Hello there"
+"multiline
+string
+yep"
+program.
+
+if() else{} [true|not false]
+x := 1_.1_2_3;
+aBc2D_eF5 := 10 / 5;
+x!=abc2d_ef5<==//<- = is T_UNK
+/*Valid no close comment
