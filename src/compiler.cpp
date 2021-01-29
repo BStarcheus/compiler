@@ -1,6 +1,9 @@
-#include "scanner.h"
+#include "parser.h"
 #include "symbolTable.h"
 #include <iostream>
+
+// Global
+SymbolTable symb;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {

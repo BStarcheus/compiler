@@ -3,9 +3,6 @@
 #include <iostream>
 #include <iomanip>
 
-// Global
-SymbolTable symb;
-
 Scanner::Scanner(bool dbg) {
     debugFlag = dbg;
 
