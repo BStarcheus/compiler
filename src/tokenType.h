@@ -30,6 +30,7 @@ enum TokenType {
     // Single char tokens
     T_PERIOD = '.',
     T_SEMICOLON = ';',
+    T_COLON = ':',
     T_LPAREN = '(',
     T_RPAREN = ')',
     T_COMMA = ',',

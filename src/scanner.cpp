@@ -304,7 +304,7 @@ Token Scanner::scanToken() {
                         token.type = T_ASSIGNMENT;
                     } else {
                         file.unget();
-                        token.type = T_UNK;
+                        token.type = T_COLON;
                     }
                     break;
 
