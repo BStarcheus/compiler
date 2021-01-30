@@ -30,6 +30,7 @@ const char* getTokenTypeName(Token t) {
 
         INSERT_ELEMENT(T_PERIOD);
         INSERT_ELEMENT(T_SEMICOLON);
+        INSERT_ELEMENT(T_COLON);
         INSERT_ELEMENT(T_LPAREN);
         INSERT_ELEMENT(T_RPAREN);
         INSERT_ELEMENT(T_COMMA);
