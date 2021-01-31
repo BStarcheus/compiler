@@ -5,10 +5,20 @@
 
 class Parser {
     public:
-        Parser();
+        Parser(Scanner* scannerPtr, bool dbg = false);
         ~Parser();
+        bool debugFlag;
+        bool errorFlag;
         bool parse();
     private:
+        Token token;
+        Scanner* scanner;
+
+        void error(std::string msg);
+        void warning(std::string msg);
+        void debug(std::string msg);
+
+        bool isTokenType(TokenType t);
         bool program();
         bool programHeader();
         bool programBody();
@@ -26,7 +36,7 @@ class Parser {
         bool bound();
 
         bool statement();
-        bool precedureCall();
+        bool procedureCall();
         bool assignmentStatement();
         bool destination();
         bool ifStatement();
@@ -47,5 +57,8 @@ class Parser {
         bool argumentList();
         bool number();
         bool string();
+
+        bool declarationBlockHelper();
+        bool statementBlockHelper();
 };
 #endif

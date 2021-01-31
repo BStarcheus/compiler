@@ -20,10 +20,9 @@ int main(int argc, char* argv[]) {
         return 1;
     } 
 
-    Token token;
-    do {
-        token = s.scan();
-    } while (token.type != T_EOF);
+    Parser p(&s, dbg);
+    bool success = p.parse();
+    std::cout << "Parse success: " << success << std::endl;
 
     std::cout << std::endl << std::endl << "Symbol Table:" << std::endl;
     // Check symbol table entries
