@@ -16,19 +16,7 @@ Parser::~Parser() {
 bool Parser::parse() {
     // Get the first token
     token = scanner->scan();
-
-    // At least one program needed to compile
-    if (!program()) {
-        return false;
-    }
-
-    // Todo verify multiple programs per file allowed
-    while (!isTokenType(T_EOF)) {
-        if (!program()) {
-            return false;
-        }
-    }
-    return true;
+    return program();
 }
 
 
@@ -65,6 +53,9 @@ bool Parser::program() {
     }
     if (!isTokenType(T_PERIOD)) {
         error("Missing \'.\' at end of program");
+        return false;
+    }
+    if (!isTokenType(T_EOF)) {
         return false;
     }
     return true;
