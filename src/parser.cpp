@@ -34,7 +34,7 @@ void Parser::debug(std::string msg) {
 /* 
  */
 bool Parser::isTokenType(TokenType t) {
-    if (t == token.type) {
+    if (token.type == t) {
         token = scanner->scan();
         return true;
     } else {
@@ -55,7 +55,7 @@ bool Parser::program() {
         error("Missing \'.\' at end of program");
         return false;
     }
-    if (!isTokenType(T_EOF)) {
+    if (token.type != T_EOF) {
         return false;
     }
     return true;
