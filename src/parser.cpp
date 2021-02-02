@@ -646,15 +646,18 @@ bool Parser::factor() {
             error("Missing \')\' in expression factor");
             return false;
         }
-    } else if (procedureCall()) {
-        // BROKEN
+    } else if (procCallOrName()) {
         // Both procedure call and name start with identifier
 
-    } else if (isTokenType(T_MINUS) ||
-               name()) {
-        
-    } else if (isTokenType(T_MINUS) ||
-               number()) {
+    } else if (isTokenType(T_MINUS)) {
+        if (name()) {
+
+        } else if (number()) {
+
+        } else {
+            return false;
+        }
+    } else if (number()) {
         
     } else if (isTokenType(T_STRING_VAL)) {
         
@@ -667,15 +670,50 @@ bool Parser::factor() {
     return true;
 }
 
+/* Helper to handle procedure call or name in factor
+ */
+bool Parser::procCallOrName() {
+    if (!isTokenType(T_IDENTIFIER)) {
+        return false;
+    }
+
+    // Procedure call
+    if (isTokenType(T_LPAREN)) {
+        // Optional
+        argumentList();
+
+        if (!isTokenType(T_RPAREN)) {
+            error("Missing \')\' in procedure call");
+            return false;
+        }
+        return true;
+    } else {
+        // Name
+
+        // Optional
+        if (isTokenType(T_LBRACKET)) {
+            if (!expression()) {
+                return false;
+            }
+            if (!isTokenType(T_RBRACKET)) {
+                error("Missing \']\' in name");
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 /* <name> ::= <identifier> [ [ <expression> ] ]
  */
 bool Parser::name() {
     if (!identifier()) {
         return false;
     }
+
+    // Optional
     if (isTokenType(T_LBRACKET)) {
         if (!expression()) {
-
             return false;
         }
         if (!isTokenType(T_RBRACKET)) {

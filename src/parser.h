@@ -53,6 +53,7 @@ class Parser {
         bool term();
         bool term_p();
         bool factor();
+        bool procCallOrName();
         bool name();
         bool argumentList();
         bool number();
