@@ -180,7 +180,18 @@ Token Scanner::scanToken() {
             chClass = getCharClass(ch);
             
             if (ch == '\n') {
+                // LF
                 lineNum++;
+            } else if (ch == '\r') {
+                // CRLF
+                ch = file.get();
+                if (ch == '\n') {
+                    lineNum++;
+                } else {
+                    file.unget();
+                    errorFlag = true;
+                    error("Invalid character");
+                }
             } else if (chClass == INVALID) {
                 errorFlag = true;
                 error("Invalid character");
