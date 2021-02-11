@@ -1,2 +1,4 @@
 .vscode
 compiler
+compiler.dSYM
+*.txt

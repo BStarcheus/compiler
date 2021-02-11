@@ -1,10 +1,10 @@
 CC = clang++
-FLAGS = -std=c++11
+FLAGS = -std=c++11 -g
 
 SRC = $(wildcard src/*.cpp)
 
 compiler: $(SRC)
-	$(CC) $(SRC) -o compiler
+	$(CC) $(FLAGS) $(SRC) -o compiler
 
 clean:
 	rm compiler
