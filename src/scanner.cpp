@@ -1,10 +1,10 @@
 #include "scanner.h"
-#include "symbolTable.h"
 #include <iostream>
 #include <iomanip>
 
-Scanner::Scanner(bool dbg) {
+Scanner::Scanner(ScopeManager* scoperPtr, bool dbg) {
     debugFlag = dbg;
+    scoper = scoperPtr;
 
     // Init character class map
     // Defines all characters that could signal start of tokens
@@ -138,15 +138,6 @@ void Scanner::debug(Token t) {
 Token Scanner::scan() {
     Token token = scanToken();
     debug(token);
-
-    // Add to symbol table
-    if (token.type == T_IDENTIFIER ||
-        token.type == T_INTEGER_VAL ||
-        token.type == T_FLOAT_VAL ||
-        token.type == T_STRING_VAL) {
-        symb.setSymbol(token.val, token);
-    }
-
     return token;
 }
 
@@ -389,13 +380,14 @@ Token Scanner::scanToken() {
             // Put back char from next token
             file.unget();
 
-            if (symb.hasSybmol(token.val)) {
-                // Reserved word, or id already in table
-                token.type = symb.getSymbol(token.val).type;
+            if (scoper->hasSymbol(token.val, true)) {
+                // Check if reserved word, or id already in table
+                token.type = scoper->getSymbol(token.val, true).type;
+
+                // Note: Only global table checked since all reserved words in global.
+                // If in local table, it would be an id anyway.
             } else {
-                // New id
                 token.type = T_IDENTIFIER;
-                // Inserted into table in scan()
             }
             break;
 

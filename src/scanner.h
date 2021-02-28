@@ -1,6 +1,7 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
+#include "scopeManager.h"
 #include "tokenType.h"
 #include <fstream>
 #include <unordered_map>
@@ -16,7 +17,7 @@ enum CharClass {
 
 class Scanner {
     public:
-        Scanner(bool dbg);
+        Scanner(ScopeManager* scoperPtr, bool dbg);
         ~Scanner();
         bool debugFlag;
         bool errorFlag;
@@ -28,6 +29,7 @@ class Scanner {
         void debug(std::string msg);
         void debug(Token t);
     private:
+        ScopeManager* scoper;
         std::ifstream file;
         std::string filename;
         int lineNum;
