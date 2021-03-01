@@ -4,6 +4,7 @@
 
 Scanner::Scanner(ScopeManager* scoperPtr, bool dbg) {
     debugFlag = dbg;
+    errorFlag = false;
     scoper = scoperPtr;
 
     // Init character class map

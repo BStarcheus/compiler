@@ -6,6 +6,7 @@ Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
     scanner = scannerPtr;
     scoper = scoperPtr;
     debugFlag = dbg;
+    errorFlag = false;
 }
 
 Parser::~Parser() {
@@ -72,6 +73,7 @@ bool Parser::programHeader() {
     }
     Token id;
     if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
     if (!isTokenType(T_IS)) {
@@ -154,6 +156,7 @@ bool Parser::procedureHeader(bool &isGlobal) {
     scoper->newScope();
     Token id;
     if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
     scoper->setProcSymbol(id.val, id, isGlobal);
@@ -164,6 +167,7 @@ bool Parser::procedureHeader(bool &isGlobal) {
         return false;
     }
     if (!typeMark()) {
+        error("Invalid type mark");
         return false;
     }
     if (!isTokenType(T_LPAREN)) {
@@ -241,6 +245,7 @@ bool Parser::variableDeclaration(bool &isGlobal) {
 
     Token id;
     if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
     scoper->setSymbol(id.val, id, isGlobal);
@@ -250,6 +255,7 @@ bool Parser::variableDeclaration(bool &isGlobal) {
         return false;
     }
     if (!typeMark()) {
+        error("Invalid type mark");
         return false;
     }
 
@@ -275,6 +281,7 @@ bool Parser::typeDeclaration(bool &isGlobal) {
 
     Token id;
     if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
     scoper->setProcSymbol(id.val, id, isGlobal);
@@ -316,6 +323,7 @@ bool Parser::typeMark() {
         }
         while (isTokenType(T_COMMA)) {
             if (!identifier(id)) {
+                error("Invalid identifier \'" + id.val + "\'");
                 return false;
             }
         }
@@ -518,12 +526,8 @@ bool Parser::returnStatement() {
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
 bool Parser::identifier(Token &id) {
-    Token tmp = token;
-    bool ret = isTokenType(T_IDENTIFIER);
-    if (ret) {
-        id = tmp;
-    }
-    return ret;
+    id = token;
+    return isTokenType(T_IDENTIFIER);
 }
 
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
@@ -798,7 +802,7 @@ bool Parser::declarationBlockHelper() {
             return false;
         }
     }
-    return true;
+    return !errorFlag;
 }
 
 /* Helper for ( <statement> ; )*
@@ -819,5 +823,5 @@ bool Parser::statementBlockHelper() {
             return false;
         }
     }
-    return true;
+    return !errorFlag;
 }

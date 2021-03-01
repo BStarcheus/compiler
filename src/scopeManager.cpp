@@ -3,6 +3,7 @@
 
 ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;
+    errorFlag = false;
     global = new Scope();
     local = nullptr;
 
