@@ -193,8 +193,13 @@ bool Parser::parameterList() {
     if (!parameter()) {
         return false;
     }
-    if (isTokenType(T_COMMA)) {
-        return parameterList();
+
+    // Optional
+    while (isTokenType(T_COMMA)) {
+        if (!parameter()) {
+            error("Invalid parameter");
+            return false;
+        }
     }
     return true;
 }
@@ -262,6 +267,7 @@ bool Parser::variableDeclaration(bool &isGlobal) {
     // Optional
     if (isTokenType(T_LBRACKET)) {
         if (!bound()) {
+            error("Invalid bound");
             return false;
         }
         if (!isTokenType(T_RBRACKET)) {
@@ -291,6 +297,7 @@ bool Parser::typeDeclaration(bool &isGlobal) {
         return false;
     }
     if (!typeMark()) {
+        error("Invalid type mark");
         return false;
     }
     return true;
@@ -688,6 +695,7 @@ bool Parser::factor() {
         } else if (number()) {
 
         } else {
+            error("Invalid use of \'-\'");
             return false;
         }
     } else if (number()) {
@@ -698,6 +706,7 @@ bool Parser::factor() {
                isTokenType(T_FALSE)) {
 
     } else {
+        error("Invalid factor");
         return false;
     }
     return true;
@@ -765,8 +774,13 @@ bool Parser::argumentList() {
     if (!expression()) {
         return false;
     }
-    if (isTokenType(T_COMMA)) {
-        return argumentList();
+
+    // Optional
+    while (isTokenType(T_COMMA)) {
+        if (!expression()) {
+            error("Invalid argument");
+            return false;
+        }
     }
     return true;
 }
