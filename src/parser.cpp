@@ -278,7 +278,7 @@ bool Parser::variableDeclaration(bool &isGlobal) {
     return true;
 }
 
-/* <type_declaration> ::= type <identifier> is <type_mark>
+/* <type_declaration> ::= type <identifier> is <type_def>
  */
 bool Parser::typeDeclaration(bool &isGlobal) {
     if (!isTokenType(T_TYPE)) {
@@ -296,30 +296,25 @@ bool Parser::typeDeclaration(bool &isGlobal) {
         error("Missing \'is\' in type declaration");
         return false;
     }
-    if (!typeMark()) {
-        error("Invalid type mark");
+    if (!typeDef()) {
+        error("Invalid type def");
         return false;
     }
     return true;
 }
 
-/* <type_mark>
- *      integer | float | string | bool
- *    | <identifier>
+/* <type_def> ::=
+ *      <type_mark>
  *    | enum { <identifier> ( , <identifier> )* }
  */
-bool Parser::typeMark() {
+bool Parser::typeDef() {
     Token id;
 
-    if (isTokenType(T_INTEGER) ||
-        isTokenType(T_FLOAT) ||
-        isTokenType(T_STRING) ||
-        isTokenType(T_BOOL)) {
-
-    } else if (identifier(id)) {
+    if (typeMark()) {
 
     } else if (isTokenType(T_ENUM)) {
         if (!isTokenType(T_LBRACE)) {
+            error("Missing \'{\' in enum");
             return false;
         }
 
@@ -336,9 +331,29 @@ bool Parser::typeMark() {
         }
 
         if (!isTokenType(T_RBRACE)) {
-            error("Missing \']\' in enum");
+            error("Missing \'}\' in enum");
             return false;
         }
+    } else {
+        return false;
+    }
+    return true;
+}
+
+/* <type_mark> ::=
+ *      integer | float | string | bool
+ *    | <identifier>
+ */
+bool Parser::typeMark() {
+    Token id;
+
+    if (isTokenType(T_INTEGER) ||
+        isTokenType(T_FLOAT) ||
+        isTokenType(T_STRING) ||
+        isTokenType(T_BOOL)) {
+
+    } else if (identifier(id)) {
+
     } else {
         return false;
     }

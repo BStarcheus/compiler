@@ -33,6 +33,7 @@ class Parser {
 
         bool variableDeclaration(bool &isGlobal);
         bool typeDeclaration(bool &isGlobal);
+        bool typeDef();
         bool typeMark();
         bool bound();
 
