@@ -816,15 +816,7 @@ bool Parser::string() {
 /* Helper for ( <declaration> ; )*
  */
 bool Parser::declarationBlockHelper() {
-    // At least one declaration required
-    if (!declaration()) {
-        return false;
-    }
-    if (!isTokenType(T_SEMICOLON)) {
-        error("Missing \';\' after declaration");
-        return false;
-    }
-
+    // Zero or more declarations
     while (declaration()) {
         if (!isTokenType(T_SEMICOLON)) {
             error("Missing \';\' after declaration");
@@ -837,15 +829,7 @@ bool Parser::declarationBlockHelper() {
 /* Helper for ( <statement> ; )*
  */
 bool Parser::statementBlockHelper() {
-    // At least one statement required
-    if (!statement()) {
-        return false;
-    }
-    if (!isTokenType(T_SEMICOLON)) {
-        error("Missing \';\' after statement");
-        return false;
-    }
-
+    // Zero or more statements
     while (statement()) {
         if (!isTokenType(T_SEMICOLON)) {
             error("Missing \';\' after statement");
