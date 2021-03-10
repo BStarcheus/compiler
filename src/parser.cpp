@@ -114,7 +114,6 @@ bool Parser::programBody() {
 /* <declaration> ::=
  *      [ global ] <procedure_declaration>
  *    | [ global ] <variable_declaration>
- *    | [ global ] <type_declaration>
  */
 bool Parser::declaration() {
     bool isGlobal = isTokenType(T_GLOBAL);
@@ -122,8 +121,6 @@ bool Parser::declaration() {
     if (procedureDeclaration(isGlobal)) {
 
     } else if (variableDeclaration(isGlobal)) {
-
-    } else if (typeDeclaration(isGlobal)) {
 
     } else {
         return false;
@@ -278,81 +275,15 @@ bool Parser::variableDeclaration(bool &isGlobal) {
     return true;
 }
 
-/* <type_declaration> ::= type <identifier> is <type_def>
- */
-bool Parser::typeDeclaration(bool &isGlobal) {
-    if (!isTokenType(T_TYPE)) {
-        return false;
-    }
-
-    Token id;
-    if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
-        return false;
-    }
-    scoper->setProcSymbol(id.val, id, isGlobal);
-
-    if (!isTokenType(T_IS)) {
-        error("Missing \'is\' in type declaration");
-        return false;
-    }
-    if (!typeDef()) {
-        error("Invalid type def");
-        return false;
-    }
-    return true;
-}
-
-/* <type_def> ::=
- *      <type_mark>
- *    | enum { <identifier> ( , <identifier> )* }
- */
-bool Parser::typeDef() {
-    Token id;
-
-    if (typeMark()) {
-
-    } else if (isTokenType(T_ENUM)) {
-        if (!isTokenType(T_LBRACE)) {
-            error("Missing \'{\' in enum");
-            return false;
-        }
-
-        // At least one id required
-        if (!identifier(id)) {
-            error("No identifiers in enum");
-            return false;
-        }
-        while (isTokenType(T_COMMA)) {
-            if (!identifier(id)) {
-                error("Invalid identifier \'" + id.val + "\'");
-                return false;
-            }
-        }
-
-        if (!isTokenType(T_RBRACE)) {
-            error("Missing \'}\' in enum");
-            return false;
-        }
-    } else {
-        return false;
-    }
-    return true;
-}
 
 /* <type_mark> ::=
  *      integer | float | string | bool
- *    | <identifier>
  */
 bool Parser::typeMark() {
-    Token id;
-
     if (isTokenType(T_INTEGER) ||
         isTokenType(T_FLOAT) ||
         isTokenType(T_STRING) ||
         isTokenType(T_BOOL)) {
-
-    } else if (identifier(id)) {
 
     } else {
         return false;

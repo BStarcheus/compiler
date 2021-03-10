@@ -15,12 +15,10 @@ ScopeManager::ScopeManager(bool dbg) {
     global->setSymbol("global", (Token){T_GLOBAL, "global"});
     global->setSymbol("procedure", (Token){T_PROCEDURE, "procedure"});
     global->setSymbol("variable", (Token){T_VARIABLE, "variable"});
-    global->setSymbol("type", (Token){T_TYPE, "type"});
     global->setSymbol("integer", (Token){T_INTEGER, "integer"});
     global->setSymbol("float", (Token){T_FLOAT, "float"});
     global->setSymbol("string", (Token){T_STRING, "string"});
     global->setSymbol("bool", (Token){T_BOOL, "bool"});
-    global->setSymbol("enum", (Token){T_ENUM, "enum"});
     global->setSymbol("if", (Token){T_IF, "if"});
     global->setSymbol("then", (Token){T_THEN, "then"});
     global->setSymbol("else", (Token){T_ELSE, "else"});
