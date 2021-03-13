@@ -5,7 +5,7 @@
 
 class Parser {
     public:
-        Parser(Scanner* scannerPtr, bool dbg = false);
+        Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg);
         ~Parser();
         bool debugFlag;
         bool errorFlag;
@@ -13,6 +13,7 @@ class Parser {
     private:
         Token token;
         Scanner* scanner;
+        ScopeManager* scoper;
 
         void error(std::string msg);
         void warning(std::string msg);
@@ -24,26 +25,25 @@ class Parser {
         bool programBody();
         bool declaration();
 
-        bool procedureDeclaration();
-        bool procedureHeader();
+        bool procedureDeclaration(bool &isGlobal);
+        bool procedureHeader(bool &isGlobal);
         bool parameterList();
         bool parameter();
         bool procedureBody();
 
-        bool variableDeclaration();
-        bool typeDeclaration();
+        bool variableDeclaration(bool &isGlobal);
         bool typeMark();
         bool bound();
 
         bool statement();
-        bool procedureCall();
+        bool procedureCall(Token &id);
         bool assignmentStatement();
-        bool destination();
+        bool destination(Token &id);
         bool ifStatement();
         bool loopStatement();
         bool returnStatement();
 
-        bool identifier();
+        bool identifier(Token &id);
         bool expression();
         bool expression_p();
         bool arithOp();
@@ -53,8 +53,8 @@ class Parser {
         bool term();
         bool term_p();
         bool factor();
-        bool procCallOrName();
-        bool name();
+        bool procCallOrName(Token &id);
+        bool name(Token &id);
         bool argumentList();
         bool number();
         bool string();

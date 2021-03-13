@@ -1,9 +1,5 @@
 #include "parser.h"
-#include "symbolTable.h"
 #include <iostream>
-
-// Global
-SymbolTable symb;
 
 int main(int argc, char* argv[]) {
     bool dbg = false;
@@ -25,24 +21,22 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Scanner s(dbg);
-    if (!s.openFile(argv[1])) {
+    ScopeManager scoper(dbg);
+    Scanner scanner(&scoper, dbg);
+    Parser parser(&scanner, &scoper, dbg);
+
+    if (!scanner.openFile(argv[1])) {
         std::cout << "Error: File couldn't be opened" << std::endl;
         return 1;
     } 
 
-    Parser p(&s, dbg);
-    bool success = p.parse();
+    bool success = parser.parse();
 
     if (dbg) {
         std::cout << "Parse success: " << success << std::endl;
 
-        std::cout << std::endl << std::endl << "Symbol Table:" << std::endl;
-        // Check symbol table entries
-        for (SymTabMap::iterator it = symb.begin(); it != symb.end(); ++it) {
-            std::cout << getTokenTypeName(it->second) << " "\
-            << it->second.val << std::endl;
-        }
+        std::cout << std::endl << std::endl << "Global Symbol Table:" << std::endl;
+        scoper.printScope(true);
     }
 
     return 0;

@@ -2,9 +2,11 @@
 #include "tokenType.h"
 #include <iostream>
 
-Parser::Parser(Scanner* scannerPtr, bool dbg) {
+Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
     scanner = scannerPtr;
+    scoper = scoperPtr;
     debugFlag = dbg;
+    errorFlag = false;
 }
 
 Parser::~Parser() {
@@ -45,6 +47,7 @@ bool Parser::isTokenType(TokenType t) {
 /* <program> ::= <program_header> <program_body> .
  */
 bool Parser::program() {
+    // Outermost/global scope is already set in ScopeManager init
     if (!programHeader()) {
         return false;
     }
@@ -58,6 +61,7 @@ bool Parser::program() {
     if (token.type != T_EOF) {
         return false;
     }
+    scoper->exitScope();
     return true;
 }
 
@@ -67,7 +71,9 @@ bool Parser::programHeader() {
     if (!isTokenType(T_PROGRAM)) {
         return false;
     }
-    if (!identifier()) {
+    Token id;
+    if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
     if (!isTokenType(T_IS)) {
@@ -108,18 +114,13 @@ bool Parser::programBody() {
 /* <declaration> ::=
  *      [ global ] <procedure_declaration>
  *    | [ global ] <variable_declaration>
- *    | [ global ] <type_declaration>
  */
 bool Parser::declaration() {
-    if (isTokenType(T_GLOBAL)) {
-        // Handle scoping
-    }
+    bool isGlobal = isTokenType(T_GLOBAL);
 
-    if (procedureDeclaration()) {
+    if (procedureDeclaration(isGlobal)) {
 
-    } else if (variableDeclaration()) {
-
-    } else if (typeDeclaration()) {
+    } else if (variableDeclaration(isGlobal)) {
 
     } else {
         return false;
@@ -130,31 +131,40 @@ bool Parser::declaration() {
 
 /* <procedure_declaration> ::= <procedure_header> <procedure_body>
  */
-bool Parser::procedureDeclaration() {
-    if (!procedureHeader()) {
+bool Parser::procedureDeclaration(bool &isGlobal) {
+    if (!procedureHeader(isGlobal)) {
         return false;
     }
     if (!procedureBody()) {
         return false;
     }
+    scoper->exitScope();
     return true;
 }
 
 /* <procedure_header> ::=
  *      procedure <identifier> : <type_mark> ( [<parameter_list>] )
  */
-bool Parser::procedureHeader() {
+bool Parser::procedureHeader(bool &isGlobal) {
     if (!isTokenType(T_PROCEDURE)) {
         return false;
     }
-    if (!identifier()) {
+
+    scoper->newScope();
+    Token id;
+    if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
         return false;
     }
+    scoper->setProcSymbol(id.val, id, isGlobal);
+
+
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in procedure header");
         return false;
     }
     if (!typeMark()) {
+        error("Invalid type mark");
         return false;
     }
     if (!isTokenType(T_LPAREN)) {
@@ -180,8 +190,13 @@ bool Parser::parameterList() {
     if (!parameter()) {
         return false;
     }
-    if (isTokenType(T_COMMA)) {
-        return parameterList();
+
+    // Optional
+    while (isTokenType(T_COMMA)) {
+        if (!parameter()) {
+            error("Invalid parameter");
+            return false;
+        }
     }
     return true;
 }
@@ -189,7 +204,8 @@ bool Parser::parameterList() {
 /* <parameter> ::= <variable_declaration>
  */
 bool Parser::parameter() {
-    return variableDeclaration();
+    bool g = false;
+    return variableDeclaration(g);
 }
 
 /* <procedure_body> ::=
@@ -224,24 +240,31 @@ bool Parser::procedureBody() {
 /* <variable_declaration> ::=
  *      variable <identifier> : <type_mark> [ [ <bound> ] ]
  */
-bool Parser::variableDeclaration() {
+bool Parser::variableDeclaration(bool &isGlobal) {
     if (!isTokenType(T_VARIABLE)) {
         return false;
     }
-    if (!identifier()) {
 
+    Token id;
+    if (!identifier(id)) {
+        error("Invalid identifier \'" + id.val + "\'");
+        return false;
     }
+    scoper->setSymbol(id.val, id, isGlobal);
+
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
         return false;
     }
     if (!typeMark()) {
+        error("Invalid type mark");
         return false;
     }
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
         if (!bound()) {
+            error("Invalid bound");
             return false;
         }
         if (!isTokenType(T_RBRACKET)) {
@@ -252,29 +275,9 @@ bool Parser::variableDeclaration() {
     return true;
 }
 
-/* <type_declaration> ::= type <identifier> is <type_mark>
- */
-bool Parser::typeDeclaration() {
-    if (!isTokenType(T_TYPE)) {
-        return false;
-    }
-    if (!identifier()) {
-        return false;
-    }
-    if (!isTokenType(T_IS)) {
-        error("Missing \'is\' in type declaration");
-        return false;
-    }
-    if (!typeMark()) {
-        return false;
-    }
-    return true;
-}
 
-/* <type_mark>
+/* <type_mark> ::=
  *      integer | float | string | bool
- *    | <identifier>
- *    | enum { <identifier> ( , <identifier> )* }
  */
 bool Parser::typeMark() {
     if (isTokenType(T_INTEGER) ||
@@ -282,28 +285,6 @@ bool Parser::typeMark() {
         isTokenType(T_STRING) ||
         isTokenType(T_BOOL)) {
 
-    } else if (identifier()) {
-
-    } else if (isTokenType(T_ENUM)) {
-        if (!isTokenType(T_LBRACE)) {
-            return false;
-        }
-
-        // At least one id required
-        if (!identifier()) {
-            error("No identifiers in enum");
-            return false;
-        }
-        while (isTokenType(T_COMMA)) {
-            if (!identifier()) {
-                return false;
-            }
-        }
-
-        if (!isTokenType(T_RBRACE)) {
-            error("Missing \']\' in enum");
-            return false;
-        }
     } else {
         return false;
     }
@@ -340,8 +321,8 @@ bool Parser::statement() {
 
 /* <procedure_call> ::= <identifier> ( [<argument_list>] )
  */
-bool Parser::procedureCall() {
-    if (!identifier()) {
+bool Parser::procedureCall(Token &id) {
+    if (!identifier(id)) {
         return false;
     }
     if (!isTokenType(T_LPAREN)) {
@@ -361,7 +342,9 @@ bool Parser::procedureCall() {
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
-    if (!destination()) {
+    Token id;
+
+    if (!destination(id)) {
         return false;
     }
     if (!isTokenType(T_ASSIGNMENT)) {
@@ -375,8 +358,8 @@ bool Parser::assignmentStatement() {
 
 /* <destination> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::destination() {
-    if (!identifier()) {
+bool Parser::destination(Token &id) {
+    if (!identifier(id)) {
         return false;
     }
 
@@ -495,7 +478,8 @@ bool Parser::returnStatement() {
 
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
-bool Parser::identifier() {
+bool Parser::identifier(Token &id) {
+    id = token;
     return isTokenType(T_IDENTIFIER);
 }
 
@@ -638,6 +622,8 @@ bool Parser::term_p() {
  *    | false
  */
 bool Parser::factor() {
+    Token id;
+
     if (isTokenType(T_LPAREN)) {
         if (!expression()) {
             return false;
@@ -646,15 +632,16 @@ bool Parser::factor() {
             error("Missing \')\' in expression factor");
             return false;
         }
-    } else if (procCallOrName()) {
+    } else if (procCallOrName(id)) {
         // Both procedure call and name start with identifier
 
     } else if (isTokenType(T_MINUS)) {
-        if (name()) {
+        if (name(id)) {
 
         } else if (number()) {
 
         } else {
+            error("Invalid use of \'-\'");
             return false;
         }
     } else if (number()) {
@@ -665,6 +652,7 @@ bool Parser::factor() {
                isTokenType(T_FALSE)) {
 
     } else {
+        error("Invalid factor");
         return false;
     }
     return true;
@@ -672,8 +660,8 @@ bool Parser::factor() {
 
 /* Helper to handle procedure call or name in factor
  */
-bool Parser::procCallOrName() {
-    if (!isTokenType(T_IDENTIFIER)) {
+bool Parser::procCallOrName(Token &id) {
+    if (!identifier(id)) {
         return false;
     }
 
@@ -706,8 +694,8 @@ bool Parser::procCallOrName() {
 
 /* <name> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::name() {
-    if (!identifier()) {
+bool Parser::name(Token &id) {
+    if (!identifier(id)) {
         return false;
     }
 
@@ -732,8 +720,13 @@ bool Parser::argumentList() {
     if (!expression()) {
         return false;
     }
-    if (isTokenType(T_COMMA)) {
-        return argumentList();
+
+    // Optional
+    while (isTokenType(T_COMMA)) {
+        if (!expression()) {
+            error("Invalid argument");
+            return false;
+        }
     }
     return true;
 }
@@ -754,41 +747,25 @@ bool Parser::string() {
 /* Helper for ( <declaration> ; )*
  */
 bool Parser::declarationBlockHelper() {
-    // At least one declaration required
-    if (!declaration()) {
-        return false;
-    }
-    if (!isTokenType(T_SEMICOLON)) {
-        error("Missing \';\' after declaration");
-        return false;
-    }
-
+    // Zero or more declarations
     while (declaration()) {
         if (!isTokenType(T_SEMICOLON)) {
             error("Missing \';\' after declaration");
             return false;
         }
     }
-    return true;
+    return !errorFlag;
 }
 
 /* Helper for ( <statement> ; )*
  */
 bool Parser::statementBlockHelper() {
-    // At least one statement required
-    if (!statement()) {
-        return false;
-    }
-    if (!isTokenType(T_SEMICOLON)) {
-        error("Missing \';\' after statement");
-        return false;
-    }
-
+    // Zero or more statements
     while (statement()) {
         if (!isTokenType(T_SEMICOLON)) {
             error("Missing \';\' after statement");
             return false;
         }
     }
-    return true;
+    return !errorFlag;
 }
