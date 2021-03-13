@@ -36,14 +36,14 @@ class Parser {
         bool bound();
 
         bool statement();
-        bool procedureCall(Token &id);
+        bool procedureCall(Symbol &id);
         bool assignmentStatement();
-        bool destination(Token &id);
+        bool destination(Symbol &id);
         bool ifStatement();
         bool loopStatement();
         bool returnStatement();
 
-        bool identifier(Token &id);
+        bool identifier(Symbol &id);
         bool expression();
         bool expression_p();
         bool arithOp();
@@ -53,8 +53,8 @@ class Parser {
         bool term();
         bool term_p();
         bool factor();
-        bool procCallOrName(Token &id);
-        bool name(Token &id);
+        bool procCallOrName(Symbol &id);
+        bool name(Symbol &id);
         bool argumentList();
         bool number();
         bool string();

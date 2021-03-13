@@ -71,9 +71,9 @@ bool Parser::programHeader() {
     if (!isTokenType(T_PROGRAM)) {
         return false;
     }
-    Token id;
+    Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+        error("Invalid identifier \'" + id.getId() + "\'");
         return false;
     }
     if (!isTokenType(T_IS)) {
@@ -151,12 +151,12 @@ bool Parser::procedureHeader(bool &isGlobal) {
     }
 
     scoper->newScope();
-    Token id;
+    Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+        error("Invalid identifier \'" + id.getId() + "\'");
         return false;
     }
-    scoper->setProcSymbol(id.val, id, isGlobal);
+    scoper->setProcSymbol(id.getId(), id, isGlobal);
 
 
     if (!isTokenType(T_COLON)) {
@@ -245,12 +245,12 @@ bool Parser::variableDeclaration(bool &isGlobal) {
         return false;
     }
 
-    Token id;
+    Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+        error("Invalid identifier \'" + id.getId() + "\'");
         return false;
     }
-    scoper->setSymbol(id.val, id, isGlobal);
+    scoper->setSymbol(id.getId(), id, isGlobal);
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
@@ -321,7 +321,7 @@ bool Parser::statement() {
 
 /* <procedure_call> ::= <identifier> ( [<argument_list>] )
  */
-bool Parser::procedureCall(Token &id) {
+bool Parser::procedureCall(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
@@ -342,7 +342,7 @@ bool Parser::procedureCall(Token &id) {
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
-    Token id;
+    Symbol id;
 
     if (!destination(id)) {
         return false;
@@ -358,7 +358,7 @@ bool Parser::assignmentStatement() {
 
 /* <destination> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::destination(Token &id) {
+bool Parser::destination(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
@@ -478,8 +478,9 @@ bool Parser::returnStatement() {
 
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
-bool Parser::identifier(Token &id) {
-    id = token;
+bool Parser::identifier(Symbol &id) {
+    id.setId(token.val);
+    id.setType(token.type);
     return isTokenType(T_IDENTIFIER);
 }
 
@@ -622,7 +623,7 @@ bool Parser::term_p() {
  *    | false
  */
 bool Parser::factor() {
-    Token id;
+    Symbol id;
 
     if (isTokenType(T_LPAREN)) {
         if (!expression()) {
@@ -660,7 +661,7 @@ bool Parser::factor() {
 
 /* Helper to handle procedure call or name in factor
  */
-bool Parser::procCallOrName(Token &id) {
+bool Parser::procCallOrName(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
@@ -694,7 +695,7 @@ bool Parser::procCallOrName(Token &id) {
 
 /* <name> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::name(Token &id) {
+bool Parser::name(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
