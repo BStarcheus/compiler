@@ -57,11 +57,10 @@ void ScopeManager::exitScope() {
 }
 
 void ScopeManager::setSymbol(std::string s, Symbol sym, bool g) {
-    Scope* ptr = local;
-    if (g) { ptr = global; }
-    
-    if (!ptr->hasSymbol(s)) {
-        ptr->setSymbol(s, sym);
+    if (g) {
+        global->setSymbol(s, sym);
+    } else {
+        local->setSymbol(s, sym);
     }
 }
 
@@ -84,15 +83,10 @@ void ScopeManager::setProcSymbol(std::string s, Symbol sym, bool g) {
 // Get symbol, or return unknown token if no symbol
 Symbol ScopeManager::getSymbol(std::string s, bool g) {
     if (g) {
-        if (global->hasSymbol(s)) {
-            return global->getSymbol(s);
-        }
+        return global->getSymbol(s);
     } else {
-        if (local->hasSymbol(s)) {
-            return local->getSymbol(s);
-        }
+        return local->getSymbol(s);
     }
-    return Symbol();
 }
 
 bool ScopeManager::hasSymbol(std::string s, bool g) {
