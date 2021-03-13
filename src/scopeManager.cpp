@@ -5,7 +5,7 @@ ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;
     errorFlag = false;
     global = new Scope();
-    local = nullptr;
+    local = global;
 
     // Initialize global table with reserved words
     global->setSymbol("program", (Token){T_PROGRAM, "program"});
@@ -30,22 +30,27 @@ ScopeManager::ScopeManager(bool dbg) {
 }
 
 ScopeManager::~ScopeManager() {
-    delete global;
+    if (global != local) {
+        delete global;
+    }
     delete local;
 }
 
+// Enter a new local scope
 void ScopeManager::newScope() {
     Scope* temp = new Scope();
     temp->prev = local;
     local = temp;
 }
 
+// Exit a local scope. Set local scope to previous scope.
+// If trying to exit outermost/global scope, do nothing.
 void ScopeManager::exitScope() {
     if (debugFlag) {
         printScope(false);
     }
 
-    if (local != nullptr) {
+    if (local != nullptr && local != global) {
         Scope* temp = local;
         local = local->prev;
         delete temp;
@@ -56,10 +61,8 @@ void ScopeManager::setSymbol(std::string s, Token t, bool g) {
     Scope* ptr = local;
     if (g) { ptr = global; }
     
-    if (ptr != nullptr) {
-        if (!ptr->hasSymbol(s)) {
-            ptr->setSymbol(s, t);
-        }
+    if (!ptr->hasSymbol(s)) {
+        ptr->setSymbol(s, t);
     }
 }
 
@@ -68,7 +71,7 @@ void ScopeManager::setProcSymbol(std::string s, Token t, bool g) {
     // Add local within procedure, or globally
     setSymbol(s, t, g);
 
-    // If local, add to one scope above
+    // If not global scope, add to previous scope
     if (!g) {
         Scope* ptr = local->prev;
         if (ptr != nullptr) {

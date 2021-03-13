@@ -47,7 +47,7 @@ bool Parser::isTokenType(TokenType t) {
 /* <program> ::= <program_header> <program_body> .
  */
 bool Parser::program() {
-    scoper->newScope();
+    // Outermost/global scope is already set in ScopeManager init
     if (!programHeader()) {
         return false;
     }
