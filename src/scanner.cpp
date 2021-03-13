@@ -131,7 +131,7 @@ void Scanner::debug(std::string msg) {
 void Scanner::debug(Token t) {
     if (debugFlag) {
         std::cout << "token: " << std::left;
-        std::cout << std::setw(15) << getTokenTypeName(t);
+        std::cout << std::setw(15) << getTokenTypeName(t.type);
         std::cout << t.val << std::endl;
     }
 }

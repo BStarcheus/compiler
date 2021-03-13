@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "tokenType.h"
+#include "token.h"
 #include <iostream>
 
 Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {

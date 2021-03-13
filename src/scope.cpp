@@ -1,5 +1,4 @@
 #include "scope.h"
-#include "tokenType.h"
 #include <iostream>
 
 Scope::Scope() {
@@ -30,7 +29,7 @@ bool Scope::hasSymbol(std::string s) {
 void Scope::printSymbolTable() {
     std::cout << std::endl;
     for (SymbolTable::iterator it = table.begin(); it != table.end(); ++it) {
-        std::cout << getTokenTypeName(it->second) << " "\
+        std::cout << getTokenTypeName(it->second.type) << " "\
             << it->second.val << std::endl;
     }
     std::cout << std::endl;

@@ -1,5 +1,4 @@
 #include "scopeManager.h"
-#include "tokenType.h"
 
 ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;

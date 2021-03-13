@@ -2,7 +2,7 @@
 #define SCANNER_H
 
 #include "scopeManager.h"
-#include "tokenType.h"
+#include "token.h"
 #include <fstream>
 #include <unordered_map>
 
