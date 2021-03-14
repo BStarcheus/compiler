@@ -28,7 +28,7 @@ bool Scope::hasSymbol(std::string s) {
 void Scope::printSymbolTable() {
     std::cout << std::endl;
     for (SymbolTable::iterator it = table.begin(); it != table.end(); ++it) {
-        std::cout << getTokenTypeName(it->second.getType()) << " "\
+        std::cout << getTokenTypeName(it->second.getTokenType()) << " "\
             << it->second.getId() << std::endl;
     }
     std::cout << std::endl;

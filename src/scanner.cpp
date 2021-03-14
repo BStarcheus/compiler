@@ -383,7 +383,7 @@ Token Scanner::scanToken() {
 
             if (scoper->hasSymbol(token.val, true)) {
                 // Check if reserved word, or id already in table
-                token.type = scoper->getSymbol(token.val, true).getType();
+                token.type = scoper->getSymbol(token.val, true).getTokenType();
 
                 // Note: Only global table checked since all reserved words in global.
                 // If in local table, it would be an id anyway.

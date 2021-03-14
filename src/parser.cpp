@@ -480,7 +480,7 @@ bool Parser::returnStatement() {
  */
 bool Parser::identifier(Symbol &id) {
     id.setId(token.val);
-    id.setType(token.type);
+    id.setTokenType(token.type);
     return isTokenType(T_IDENTIFIER);
 }
 
