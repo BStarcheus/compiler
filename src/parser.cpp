@@ -116,11 +116,12 @@ bool Parser::programBody() {
  *    | [ global ] <variable_declaration>
  */
 bool Parser::declaration() {
-    bool isGlobal = isTokenType(T_GLOBAL);
+    Symbol decl;
+    decl.isGlobal = isTokenType(T_GLOBAL);
 
-    if (procedureDeclaration(isGlobal)) {
+    if (procedureDeclaration(decl)) {
 
-    } else if (variableDeclaration(isGlobal)) {
+    } else if (variableDeclaration(decl)) {
 
     } else {
         return false;
@@ -131,8 +132,8 @@ bool Parser::declaration() {
 
 /* <procedure_declaration> ::= <procedure_header> <procedure_body>
  */
-bool Parser::procedureDeclaration(bool &isGlobal) {
-    if (!procedureHeader(isGlobal)) {
+bool Parser::procedureDeclaration(Symbol &decl) {
+    if (!procedureHeader(decl)) {
         return false;
     }
     if (!procedureBody()) {
@@ -145,7 +146,7 @@ bool Parser::procedureDeclaration(bool &isGlobal) {
 /* <procedure_header> ::=
  *      procedure <identifier> : <type_mark> ( [<parameter_list>] )
  */
-bool Parser::procedureHeader(bool &isGlobal) {
+bool Parser::procedureHeader(Symbol &decl) {
     if (!isTokenType(T_PROCEDURE)) {
         return false;
     }
@@ -156,7 +157,7 @@ bool Parser::procedureHeader(bool &isGlobal) {
         error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
-    scoper->setProcSymbol(id.id, id, isGlobal);
+    scoper->setProcSymbol(id.id, id, decl.isGlobal);
 
 
     if (!isTokenType(T_COLON)) {
@@ -204,8 +205,8 @@ bool Parser::parameterList() {
 /* <parameter> ::= <variable_declaration>
  */
 bool Parser::parameter() {
-    bool g = false;
-    return variableDeclaration(g);
+    Symbol param;
+    return variableDeclaration(param);
 }
 
 /* <procedure_body> ::=
@@ -240,7 +241,7 @@ bool Parser::procedureBody() {
 /* <variable_declaration> ::=
  *      variable <identifier> : <type_mark> [ [ <bound> ] ]
  */
-bool Parser::variableDeclaration(bool &isGlobal) {
+bool Parser::variableDeclaration(Symbol &decl) {
     if (!isTokenType(T_VARIABLE)) {
         return false;
     }
@@ -250,7 +251,7 @@ bool Parser::variableDeclaration(bool &isGlobal) {
         error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
-    scoper->setSymbol(id.id, id, isGlobal);
+    scoper->setSymbol(id.id, id, decl.isGlobal);
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");

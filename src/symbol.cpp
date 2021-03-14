@@ -5,6 +5,7 @@ Symbol::Symbol() {
     tokenType = T_UNK;
     symbolType = ST_UNK;
     type = TYPE_UNK;
+    isGlobal = false;
     isArr = false;
     arrBound = 0;
 }
@@ -14,6 +15,7 @@ Symbol::Symbol(std::string id_p, TokenType tok_p) {
     tokenType = tok_p;
     symbolType = ST_UNK;
     type = TYPE_UNK;
+    isGlobal = false;
     isArr = false;
     arrBound = 0;
 }
@@ -23,6 +25,7 @@ Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p)
     tokenType = tok_p;
     symbolType = sym_p;
     type = type_p;
+    isGlobal = false;
     isArr = false;
     arrBound = 0;
 }

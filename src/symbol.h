@@ -51,6 +51,8 @@ struct Symbol {
     // Type of variable, or return type of procedure
     Type type;
 
+    bool isGlobal;
+
     // Is it an array, and if so what is the bound
     bool isArr;
     int arrBound;

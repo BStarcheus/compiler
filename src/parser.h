@@ -25,13 +25,13 @@ class Parser {
         bool programBody();
         bool declaration();
 
-        bool procedureDeclaration(bool &isGlobal);
-        bool procedureHeader(bool &isGlobal);
+        bool procedureDeclaration(Symbol &decl);
+        bool procedureHeader(Symbol &decl);
         bool parameterList();
         bool parameter();
         bool procedureBody();
 
-        bool variableDeclaration(bool &isGlobal);
+        bool variableDeclaration(Symbol &decl);
         bool typeMark();
         bool bound();
 
