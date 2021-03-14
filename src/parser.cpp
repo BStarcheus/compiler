@@ -265,12 +265,19 @@ bool Parser::variableDeclaration(Symbol &decl) {
         return false;
     }
 
-    Symbol id;
-    if (!identifier(id)) {
-        error("Invalid identifier \'" + id.id + "\'");
+    if (!identifier(decl)) {
+        error("Invalid identifier \'" + decl.id + "\'");
         return false;
     }
-    scoper->setSymbol(id.id, id, decl.isGlobal);
+
+    // Error if duplicate name within scope
+    if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+        error("Variable name \'" + decl.id + "\' already used in this scope");
+        return false;
+    }
+    // Set in scope
+    scoper->setSymbol(decl.id, decl, decl.isGlobal);
+
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
