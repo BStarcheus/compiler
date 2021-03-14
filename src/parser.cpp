@@ -136,10 +136,32 @@ bool Parser::procedureDeclaration(Symbol &decl) {
     if (!procedureHeader(decl)) {
         return false;
     }
+
+    // Error if duplicate name within function scope
+    if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+        error("Procedure name \'" + decl.id + "\' already used in this scope");
+        return false;
+    }
+    // Set inside function, so recursive calls possible
+    scoper->setSymbol(decl.id, decl, decl.isGlobal);
+
+
     if (!procedureBody()) {
         return false;
     }
     scoper->exitScope();
+
+    // If global, already added to global table above
+    if (!decl.isGlobal) {
+        // Error if duplicate name in local scope outside the function
+        if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+            error("Procedure name \'" + decl.id + "\' already used in this scope");
+            return false;
+        }
+        // Set in local scope outside the function
+        scoper->setSymbol(decl.id, decl, decl.isGlobal);
+    }
+
     return true;
 }
 
@@ -152,13 +174,10 @@ bool Parser::procedureHeader(Symbol &decl) {
     }
 
     scoper->newScope();
-    Symbol id;
-    if (!identifier(id)) {
-        error("Invalid identifier \'" + id.id + "\'");
+    if (!identifier(decl)) {
+        error("Invalid identifier \'" + decl.id + "\'");
         return false;
     }
-    scoper->setProcSymbol(id.id, id, decl.isGlobal);
-
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in procedure header");

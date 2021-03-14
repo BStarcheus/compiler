@@ -64,22 +64,6 @@ void ScopeManager::setSymbol(std::string s, Symbol sym, bool g) {
     }
 }
 
-// Set symbol for procedure at procedure's scope and one above
-void ScopeManager::setProcSymbol(std::string s, Symbol sym, bool g) {
-    // Add local within procedure, or globally
-    setSymbol(s, sym, g);
-
-    // If not global scope, add to previous scope
-    if (!g) {
-        Scope* ptr = local->prev;
-        if (ptr != nullptr) {
-            if (!ptr->hasSymbol(s)) {
-                ptr->setSymbol(s, sym);
-            }
-        }
-    }
-}
-
 // Get symbol, or return unknown token if no symbol
 Symbol ScopeManager::getSymbol(std::string s, bool g) {
     if (g) {
