@@ -34,40 +34,25 @@ enum SymbolType {
  * 
  * Also used to represent expressions, etc for type checking
  */
-class Symbol {
-    public:
-        Symbol();
-        Symbol(std::string id_p, TokenType tok_p);
-        Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p);
+struct Symbol {
+    Symbol();
+    Symbol(std::string id_p, TokenType tok_p);
+    Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p);
 
-        // Getters and setters
-        std::string getId();
-        void setId(std::string id_p);
-        TokenType getTokenType();
-        void setTokenType(TokenType tok_p);
-        SymbolType getSymbolType();
-        void setSymbolType(SymbolType sym_p);
-        Type getType();
-        void setType(Type type_p);
-        bool isArray();
-        void setIsArray(bool val);
-        int getArrayBound();
-        void setArrayBound(int bound);
-    private:
-        // Identifier value
-        std::string id;
+    // Identifier value
+    std::string id;
 
-        // Token type is either identifier or the reserved word value
-        TokenType tokType;
+    // Token type is either identifier or the reserved word value
+    TokenType tokenType;
 
-        // Symbol type is reserved keyword, variable, or procdure
-        SymbolType symType;
+    // Symbol type is reserved keyword, variable, or procdure
+    SymbolType symbolType;
 
-        // Type of variable, or return type of procedure
-        Type type;
+    // Type of variable, or return type of procedure
+    Type type;
 
-        // Is it an array, and if so what is the bound
-        bool isArr;
-        int arrBound;
+    // Is it an array, and if so what is the bound
+    bool isArr;
+    int arrBound;
 };
 #endif

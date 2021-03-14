@@ -73,7 +73,7 @@ bool Parser::programHeader() {
     }
     Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.getId() + "\'");
+        error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
     if (!isTokenType(T_IS)) {
@@ -153,10 +153,10 @@ bool Parser::procedureHeader(bool &isGlobal) {
     scoper->newScope();
     Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.getId() + "\'");
+        error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
-    scoper->setProcSymbol(id.getId(), id, isGlobal);
+    scoper->setProcSymbol(id.id, id, isGlobal);
 
 
     if (!isTokenType(T_COLON)) {
@@ -247,10 +247,10 @@ bool Parser::variableDeclaration(bool &isGlobal) {
 
     Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.getId() + "\'");
+        error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
-    scoper->setSymbol(id.getId(), id, isGlobal);
+    scoper->setSymbol(id.id, id, isGlobal);
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
@@ -479,8 +479,8 @@ bool Parser::returnStatement() {
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
 bool Parser::identifier(Symbol &id) {
-    id.setId(token.val);
-    id.setTokenType(token.type);
+    id.id = token.val;
+    id.tokenType = token.type;
     return isTokenType(T_IDENTIFIER);
 }
 
