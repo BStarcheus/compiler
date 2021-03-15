@@ -34,10 +34,7 @@ int main(int argc, char* argv[]) {
 
     if (dbg) {
         std::cout << "Parse success: " << success << std::endl;
-
-        std::cout << std::endl << std::endl << "Global Symbol Table:" << std::endl;
-        scoper.printScope(true);
     }
 
-    return 0;
+    return !success;
 }
