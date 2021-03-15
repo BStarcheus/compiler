@@ -193,7 +193,7 @@ bool Parser::procedureHeader(Symbol &decl) {
     }
 
     // Optional
-    parameterList();
+    parameterList(decl);
     
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in procedure header");
@@ -206,25 +206,30 @@ bool Parser::procedureHeader(Symbol &decl) {
  *      <parameter> , <parameter_list>
  *    | <parameter>
  */
-bool Parser::parameterList() {
-    if (!parameter()) {
+bool Parser::parameterList(Symbol &decl) {
+    Symbol param;
+    if (!parameter(param)) {
         return false;
     }
+    // Add to procedure param list
+    decl.params.push_back(param);
 
     // Optional
     while (isTokenType(T_COMMA)) {
-        if (!parameter()) {
+        param = Symbol();
+        if (!parameter(param)) {
             error("Invalid parameter");
             return false;
         }
+        // Add to procedure param list
+        decl.params.push_back(param);
     }
     return true;
 }
 
 /* <parameter> ::= <variable_declaration>
  */
-bool Parser::parameter() {
-    Symbol param;
+bool Parser::parameter(Symbol &param) {
     return variableDeclaration(param);
 }
 

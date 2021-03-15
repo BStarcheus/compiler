@@ -27,8 +27,8 @@ class Parser {
 
         bool procedureDeclaration(Symbol &decl);
         bool procedureHeader(Symbol &decl);
-        bool parameterList();
-        bool parameter();
+        bool parameterList(Symbol &decl);
+        bool parameter(Symbol &param);
         bool procedureBody();
 
         bool variableDeclaration(Symbol &decl);

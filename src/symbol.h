@@ -2,6 +2,7 @@
 #define SYMBOL_H
 
 #include <string>
+#include <vector>
 #include "token.h"
 
 
@@ -56,5 +57,8 @@ struct Symbol {
     // Is it an array, and if so what is the bound
     bool isArr;
     int arrBound;
+
+    // Parameter list for procedures
+    std::vector<Symbol> params;
 };
 #endif
