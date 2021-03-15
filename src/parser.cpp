@@ -58,7 +58,7 @@ bool Parser::program() {
         error("Missing \'.\' at end of program");
         return false;
     }
-    if (token.type != T_EOF) {
+    if (!isTokenType(T_EOF)) {
         return false;
     }
     scoper->exitScope();
@@ -436,6 +436,7 @@ bool Parser::ifStatement() {
         return false;
     }
 
+    // Optional
     if (isTokenType(T_ELSE)) {
         if (!statementBlockHelper()) {
             return false;
@@ -519,7 +520,9 @@ bool Parser::identifier(Symbol &id) {
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
  */
 bool Parser::expression() {
-    isTokenType(T_NOT);
+    // Optional
+    bool nt = isTokenType(T_NOT);
+
     if (!arithOp()) {
         return false;
     }
