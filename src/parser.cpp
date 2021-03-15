@@ -688,7 +688,6 @@ bool Parser::factor() {
                isTokenType(T_FALSE)) {
 
     } else {
-        error("Invalid factor");
         return false;
     }
     return true;
