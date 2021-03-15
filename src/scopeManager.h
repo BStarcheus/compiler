@@ -10,7 +10,9 @@ class ScopeManager {
         void newScope();
         void exitScope();
         void setSymbol(std::string s, Symbol sym, bool g);
+        Symbol getSymbol(std::string s);
         Symbol getSymbol(std::string s, bool g);
+        bool hasSymbol(std::string s);
         bool hasSymbol(std::string s, bool g);
         void printScope(bool g);
         bool debugFlag;

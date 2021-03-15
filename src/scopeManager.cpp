@@ -64,6 +64,16 @@ void ScopeManager::setSymbol(std::string s, Symbol sym, bool g) {
     }
 }
 
+// First check local, then global scope
+Symbol ScopeManager::getSymbol(std::string s) {
+    if (local->hasSymbol(s)) {
+        return local->getSymbol(s);
+    } else {
+        // If not in global, UNK
+        return global->getSymbol(s);
+    }
+}
+
 // Get symbol, or return unknown token if no symbol
 Symbol ScopeManager::getSymbol(std::string s, bool g) {
     if (g) {
@@ -73,6 +83,12 @@ Symbol ScopeManager::getSymbol(std::string s, bool g) {
     }
 }
 
+// First check local, then global scope
+bool ScopeManager::hasSymbol(std::string s) {
+    return local->hasSymbol(s) || global->hasSymbol(s);
+}
+
+// Check specific scope
 bool ScopeManager::hasSymbol(std::string s, bool g) {
     if (g) {
         return global->hasSymbol(s);

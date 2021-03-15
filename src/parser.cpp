@@ -351,32 +351,12 @@ bool Parser::statement() {
     return true;
 }
 
-/* <procedure_call> ::= <identifier> ( [<argument_list>] )
- */
-bool Parser::procedureCall(Symbol &id) {
-    if (!identifier(id)) {
-        return false;
-    }
-    if (!isTokenType(T_LPAREN)) {
-        return false;
-    }
-
-    // Optional
-    argumentList();
-
-    if (!isTokenType(T_RPAREN)) {
-        error("Missing \')\' in procedure call");
-        return false;
-    }
-    return true;
-}
-
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
-    Symbol id;
+    Symbol dest;
 
-    if (!destination(id)) {
+    if (!destination(dest)) {
         return false;
     }
     if (!isTokenType(T_ASSIGNMENT)) {
@@ -394,6 +374,14 @@ bool Parser::destination(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
+
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
@@ -695,10 +683,22 @@ bool Parser::factor() {
 
 /* Helper to handle procedure call or name in factor
  */
+/* <procedure_call> ::= <identifier> ( [<argument_list>] )
+ */
+/* <name> ::= <identifier> [ [ <expression> ] ]
+ */
 bool Parser::procCallOrName(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
+
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
 
     // Procedure call
     if (isTokenType(T_LPAREN)) {
@@ -733,6 +733,14 @@ bool Parser::name(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
+
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
