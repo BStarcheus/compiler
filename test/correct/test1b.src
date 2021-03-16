@@ -16,11 +16,13 @@ PROGRAM grant IS
 		begin
 			i := 4.5;
 			tst := purString("passed");
+			return (0);
 		end procedure;
 		begin
 			if(true) then jake := jake + 1;
 			else zach := zach + RYAN[2];
-		end if;
+			end if;
+			return (0);
 	end procedure;
 
 	procedure for_proc : integer()
@@ -29,6 +31,7 @@ PROGRAM grant IS
 			for(i := 0; i < zach)
 				ryan[1] := zach + i;
 			end for;
+			return 1;
 		end procedure;
 
 	begin

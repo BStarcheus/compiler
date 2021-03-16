@@ -33,6 +33,7 @@ program test_program is
         b := fibb(n-2);
 
         result := a + b;
+	return result;
     end procedure;
 begin
     fibb_result := -1234;
