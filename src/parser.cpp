@@ -525,11 +525,9 @@ bool Parser::identifier(Symbol &id) {
     if (token.type == T_IDENTIFIER) {
         id.id = token.val;
         id.tokenType = token.type;
-
-        // Consume the token
-        return isTokenType(T_IDENTIFIER);
     }
-    return false;
+    // Consume token
+    return isTokenType(T_IDENTIFIER);
 }
 
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
@@ -697,7 +695,7 @@ bool Parser::factor() {
         }
     } else if (number(id)) {
         
-    } else if (isTokenType(T_STRING_VAL)) {
+    } else if (string(id)) {
         
     } else if (isTokenType(T_TRUE) ||
                isTokenType(T_FALSE)) {
@@ -828,7 +826,14 @@ bool Parser::number(Symbol &num) {
 
 /* <string> :: = "[^"]*"
  */
-bool Parser::string() {
+bool Parser::string(Symbol &str) {
+    // Check without consuming
+    if (token.type == T_STRING_VAL) {
+        str.id = token.val;
+        str.tokenType = token.type;
+        str.type = TYPE_STRING;
+    }
+    // Consume token
     return isTokenType(T_STRING_VAL);
 }
 

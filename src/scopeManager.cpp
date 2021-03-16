@@ -24,8 +24,8 @@ ScopeManager::ScopeManager(bool dbg) {
     global->setSymbol("for", Symbol("for", T_FOR, ST_KEYWORD, TYPE_UNK));
     global->setSymbol("return", Symbol("return", T_RETURN, ST_KEYWORD, TYPE_UNK));
     global->setSymbol("not", Symbol("not", T_NOT, ST_KEYWORD, TYPE_UNK));
-    global->setSymbol("true", Symbol("true", T_TRUE, ST_KEYWORD, TYPE_UNK));
-    global->setSymbol("false", Symbol("false", T_FALSE, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("true", Symbol("true", T_TRUE, ST_KEYWORD, TYPE_BOOL));
+    global->setSymbol("false", Symbol("false", T_FALSE, ST_KEYWORD, TYPE_BOOL));
 }
 
 ScopeManager::~ScopeManager() {

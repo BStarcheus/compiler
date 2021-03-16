@@ -56,8 +56,8 @@ class Parser {
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
         bool argumentList();
-        bool number(Symbol &id);
-        bool string();
+        bool number(Symbol &num);
+        bool string(Symbol &str);
 
         bool declarationBlockHelper();
         bool statementBlockHelper();
