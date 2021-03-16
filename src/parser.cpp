@@ -296,7 +296,9 @@ bool Parser::variableDeclaration(Symbol &decl) {
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        if (!bound()) {
+        decl.isArr = true;
+
+        if (!bound(decl)) {
             error("Invalid bound");
             return false;
         }
@@ -333,8 +335,19 @@ bool Parser::typeMark(Symbol &id) {
 
 /* <bound> ::= <number>
  */
-bool Parser::bound() {
-    return number();
+bool Parser::bound(Symbol &id) {
+    Symbol num;
+
+    // TODO: Change impl with LLVM
+    int temp = token.getIntVal();
+
+    if (number(num) && num.type == TYPE_INT) {
+        id.arrBound = temp;
+        return true;
+    } else {
+        error("Invalid bound. Must be an integer.");
+        return false;
+    }
 }
 
 
@@ -508,9 +521,15 @@ bool Parser::returnStatement() {
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
 bool Parser::identifier(Symbol &id) {
-    id.id = token.val;
-    id.tokenType = token.type;
-    return isTokenType(T_IDENTIFIER);
+    // Check without consuming
+    if (token.type == T_IDENTIFIER) {
+        id.id = token.val;
+        id.tokenType = token.type;
+
+        // Consume the token
+        return isTokenType(T_IDENTIFIER);
+    }
+    return false;
 }
 
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
@@ -670,13 +689,13 @@ bool Parser::factor() {
     } else if (isTokenType(T_MINUS)) {
         if (name(id)) {
 
-        } else if (number()) {
+        } else if (number(id)) {
 
         } else {
             error("Invalid use of \'-\'");
             return false;
         }
-    } else if (number()) {
+    } else if (number(id)) {
         
     } else if (isTokenType(T_STRING_VAL)) {
         
@@ -786,8 +805,25 @@ bool Parser::argumentList() {
 
 /* <number> ::= [0-9][0-9_]*[.[0-9_]*]
  */
-bool Parser::number() {
-    return isTokenType(T_INTEGER_VAL) || isTokenType(T_FLOAT_VAL);
+bool Parser::number(Symbol &num) {
+    // Check without consuming
+    if (token.type == T_INTEGER_VAL) {
+        num.type = TYPE_INT;
+        num.tokenType = T_INTEGER_VAL;
+        
+        // Consume token
+        return isTokenType(T_INTEGER_VAL);
+
+    //Check without consuming
+    } else if (token.type == T_FLOAT_VAL) {
+        num.type = TYPE_FLOAT;
+        num.tokenType = T_FLOAT_VAL;
+
+        // Consume token
+        return isTokenType(T_FLOAT_VAL);
+    } else {
+        return false;
+    }
 }
 
 /* <string> :: = "[^"]*"

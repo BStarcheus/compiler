@@ -33,7 +33,7 @@ class Parser {
 
         bool variableDeclaration(Symbol &decl);
         bool typeMark(Symbol &id);
-        bool bound();
+        bool bound(Symbol &id);
 
         bool statement();
         bool procedureCall(Symbol &id);
@@ -56,7 +56,7 @@ class Parser {
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
         bool argumentList();
-        bool number();
+        bool number(Symbol &id);
         bool string();
 
         bool declarationBlockHelper();
