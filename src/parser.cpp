@@ -137,6 +137,8 @@ bool Parser::procedureDeclaration(Symbol &decl) {
         return false;
     }
 
+    decl.symbolType = ST_PROCEDURE;
+
     // Error if duplicate name within function scope
     if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
         error("Procedure name \'" + decl.id + "\' already used in this scope");
@@ -183,7 +185,7 @@ bool Parser::procedureHeader(Symbol &decl) {
         error("Missing \':\' in procedure header");
         return false;
     }
-    if (!typeMark()) {
+    if (!typeMark(decl)) {
         error("Invalid type mark");
         return false;
     }
@@ -270,6 +272,8 @@ bool Parser::variableDeclaration(Symbol &decl) {
         return false;
     }
 
+    decl.symbolType = ST_VARIABLE;
+
     if (!identifier(decl)) {
         error("Invalid identifier \'" + decl.id + "\'");
         return false;
@@ -280,15 +284,12 @@ bool Parser::variableDeclaration(Symbol &decl) {
         error("Variable name \'" + decl.id + "\' already used in this scope");
         return false;
     }
-    // Set in scope
-    scoper->setSymbol(decl.id, decl, decl.isGlobal);
-
-
+    
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
         return false;
     }
-    if (!typeMark()) {
+    if (!typeMark(decl)) {
         error("Invalid type mark");
         return false;
     }
@@ -304,6 +305,10 @@ bool Parser::variableDeclaration(Symbol &decl) {
             return false;
         }
     }
+
+    // Set in scope
+    scoper->setSymbol(decl.id, decl, decl.isGlobal);
+    
     return true;
 }
 
@@ -311,12 +316,15 @@ bool Parser::variableDeclaration(Symbol &decl) {
 /* <type_mark> ::=
  *      integer | float | string | bool
  */
-bool Parser::typeMark() {
-    if (isTokenType(T_INTEGER) ||
-        isTokenType(T_FLOAT) ||
-        isTokenType(T_STRING) ||
-        isTokenType(T_BOOL)) {
-
+bool Parser::typeMark(Symbol &id) {
+    if (isTokenType(T_INTEGER)) {
+        id.type = TYPE_INT;
+    } else if (isTokenType(T_FLOAT)) {
+        id.type = TYPE_FLOAT;
+    } else if (isTokenType(T_STRING)) {
+        id.type = TYPE_STRING;
+    } else if (isTokenType(T_BOOL)) {
+        id.type = TYPE_BOOL;
     } else {
         return false;
     }

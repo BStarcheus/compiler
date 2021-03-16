@@ -32,7 +32,7 @@ class Parser {
         bool procedureBody();
 
         bool variableDeclaration(Symbol &decl);
-        bool typeMark();
+        bool typeMark(Symbol &id);
         bool bound();
 
         bool statement();

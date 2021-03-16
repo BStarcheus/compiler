@@ -10,10 +10,10 @@
  * return type of the procedure
  */
 enum Type {
-    TYPE_BOOL,
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_STRING,
+    TYPE_BOOL,
     TYPE_UNK
 };
 

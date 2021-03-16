@@ -7,25 +7,25 @@ ScopeManager::ScopeManager(bool dbg) {
     local = global;
 
     // Initialize global table with reserved words
-    global->setSymbol("program", Symbol("program", T_PROGRAM));
-    global->setSymbol("is", Symbol("is", T_IS));
-    global->setSymbol("begin", Symbol("begin", T_BEGIN));
-    global->setSymbol("end", Symbol("end", T_END));
-    global->setSymbol("global", Symbol("global", T_GLOBAL));
-    global->setSymbol("procedure", Symbol("procedure", T_PROCEDURE));
-    global->setSymbol("variable", Symbol("variable", T_VARIABLE));
-    global->setSymbol("integer", Symbol("integer", T_INTEGER));
-    global->setSymbol("float", Symbol("float", T_FLOAT));
-    global->setSymbol("string", Symbol("string", T_STRING));
-    global->setSymbol("bool", Symbol("bool", T_BOOL));
-    global->setSymbol("if", Symbol("if", T_IF));
-    global->setSymbol("then", Symbol("then", T_THEN));
-    global->setSymbol("else", Symbol("else", T_ELSE));
-    global->setSymbol("for", Symbol("for", T_FOR));
-    global->setSymbol("return", Symbol("return", T_RETURN));
-    global->setSymbol("not", Symbol("not", T_NOT));
-    global->setSymbol("true", Symbol("true", T_TRUE));
-    global->setSymbol("false", Symbol("false", T_FALSE));
+    global->setSymbol("program", Symbol("program", T_PROGRAM, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("is", Symbol("is", T_IS, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("begin", Symbol("begin", T_BEGIN, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("end", Symbol("end", T_END, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("global", Symbol("global", T_GLOBAL, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("procedure", Symbol("procedure", T_PROCEDURE, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("variable", Symbol("variable", T_VARIABLE, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("integer", Symbol("integer", T_INTEGER, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("float", Symbol("float", T_FLOAT, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("string", Symbol("string", T_STRING, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("bool", Symbol("bool", T_BOOL, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("if", Symbol("if", T_IF, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("then", Symbol("then", T_THEN, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("else", Symbol("else", T_ELSE, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("for", Symbol("for", T_FOR, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("return", Symbol("return", T_RETURN, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("not", Symbol("not", T_NOT, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("true", Symbol("true", T_TRUE, ST_KEYWORD, TYPE_UNK));
+    global->setSymbol("false", Symbol("false", T_FALSE, ST_KEYWORD, TYPE_UNK));
 }
 
 ScopeManager::~ScopeManager() {
