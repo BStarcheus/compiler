@@ -760,8 +760,9 @@ bool Parser::procCallOrName(Symbol &id) {
     // Get from local or global
     id = scoper->getSymbol(id.id);
 
-    // Procedure call
     if (isTokenType(T_LPAREN)) {
+        // Procedure call
+
         // Optional
         argumentList();
 
@@ -769,31 +770,21 @@ bool Parser::procCallOrName(Symbol &id) {
             error("Missing \')\' in procedure call");
             return false;
         }
-        return true;
     } else {
         // Name
-
-        // Optional
-        if (isTokenType(T_LBRACKET)) {
-            Symbol exp;
-            if (!expression(exp)) {
-                return false;
-            }
-
-            // TODO Check valid access
-
-            if (!isTokenType(T_RBRACKET)) {
-                error("Missing \']\' in name");
-                return false;
-            }
+        if (!nameHelper(id)) {
+            return false;
         }
-        return true;
     }
+    return true;
 }
 
 /* <name> ::= <identifier> [ [ <expression> ] ]
  */
 bool Parser::name(Symbol &id) {
+    // This function is kept because in some cases we don't want
+    // a procedure call to be valid, only a name
+
     if (!identifier(id)) {
         return false;
     }
@@ -806,6 +797,14 @@ bool Parser::name(Symbol &id) {
     // Get from local or global
     id = scoper->getSymbol(id.id);
 
+    if (!nameHelper(id)) {
+        return false;
+    }
+    return true;
+}
+
+// Common code between name() and procCallOrName()
+bool Parser::nameHelper(Symbol &id) {
     // Optional
     if (isTokenType(T_LBRACKET)) {
         Symbol exp;

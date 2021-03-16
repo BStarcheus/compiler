@@ -55,6 +55,7 @@ class Parser {
         bool factor(Symbol &fac);
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
+        bool nameHelper(Symbol &id);
         bool argumentList();
         bool number(Symbol &num);
         bool string(Symbol &str);
