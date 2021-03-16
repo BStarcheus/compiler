@@ -44,6 +44,7 @@ class Parser {
         bool returnStatement();
 
         bool identifier(Symbol &id);
+
         bool expression(Symbol &exp);
         bool expression_p(Symbol &exp);
         bool arithOp(Symbol &arOp);
@@ -53,6 +54,7 @@ class Parser {
         bool term(Symbol &trm);
         bool term_p(Symbol &trm);
         bool factor(Symbol &fac);
+
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
         bool nameHelper(Symbol &id);
@@ -62,5 +64,7 @@ class Parser {
 
         bool declarationBlockHelper();
         bool statementBlockHelper();
+
+        bool arithmeticTypeCheck(Symbol &lhs, Symbol &rhs);
 };
 #endif

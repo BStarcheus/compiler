@@ -608,7 +608,10 @@ bool Parser::arithOp_p(Symbol &arOp) {
             return false;
         }
 
-        // TODO Check/convert type for + -
+        // Check/convert type for + -
+        if (!arithmeticTypeCheck(arOp, rhs)) {
+            return false;
+        }
 
         if (!arithOp_p(arOp)) {
             return false;
@@ -684,7 +687,10 @@ bool Parser::term_p(Symbol &trm) {
             return false;
         }
 
-        // TODO Check/convert type for * /
+        // Check/convert type for * /
+        if (!arithmeticTypeCheck(trm, rhs)) {
+            return false;
+        }
 
         if (!term_p(trm)) {
             return false;
@@ -908,4 +914,31 @@ bool Parser::statementBlockHelper() {
         }
     }
     return !errorFlag;
+}
+
+
+/* Type checking for + - * / operators
+ */
+bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
+    if ((lhs.type != TYPE_INT && lhs.type != TYPE_FLOAT) ||
+        (rhs.type != TYPE_INT && lhs.type != TYPE_FLOAT)) {
+        error("Arithmetic only defined for int and float");
+        return false;
+    }
+    
+    if (lhs.type == TYPE_INT) {
+        if (rhs.type == TYPE_FLOAT) {
+            // Convert lhs to float
+            lhs.type = TYPE_FLOAT;
+        }
+        // Else both int, types match
+        
+    } else { // lhs is float
+        if (rhs.type == TYPE_INT) {
+            // Convert rhs to float
+            rhs.type = TYPE_FLOAT;
+        }
+        // Else both float, types match
+    }
+    return true;
 }
