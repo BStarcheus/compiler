@@ -44,15 +44,15 @@ class Parser {
         bool returnStatement();
 
         bool identifier(Symbol &id);
-        bool expression();
-        bool expression_p();
-        bool arithOp();
-        bool arithOp_p();
-        bool relation();
-        bool relation_p();
-        bool term();
-        bool term_p();
-        bool factor();
+        bool expression(Symbol &exp);
+        bool expression_p(Symbol &exp);
+        bool arithOp(Symbol &arOp);
+        bool arithOp_p(Symbol &arOp);
+        bool relation(Symbol &rel);
+        bool relation_p(Symbol &rel);
+        bool term(Symbol &trm);
+        bool term_p(Symbol &trm);
+        bool factor(Symbol &fac);
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
         bool argumentList();

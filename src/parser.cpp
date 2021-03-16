@@ -375,7 +375,7 @@ bool Parser::statement() {
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
-    Symbol dest;
+    Symbol dest, exp;
 
     if (!destination(dest)) {
         return false;
@@ -383,9 +383,12 @@ bool Parser::assignmentStatement() {
     if (!isTokenType(T_ASSIGNMENT)) {
         return false;
     }
-    if (!expression()) {
+    if (!expression(exp)) {
         return false;
     }
+
+    // TODO Type check
+
     return true;
 }
 
@@ -406,9 +409,13 @@ bool Parser::destination(Symbol &id) {
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        if (!expression()) {
+        Symbol exp;
+        if (!expression(exp)) {
             return false;
         }
+
+        // TODO Check valid access
+
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in destination");
             return false;
@@ -430,9 +437,13 @@ bool Parser::ifStatement() {
         error("Missing \'(\' in if statement");
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
+
+    // TODO Check/convert to bool
+
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in if statement");
         return false;
@@ -483,9 +494,13 @@ bool Parser::loopStatement() {
         error("Missing \':\' in loop");
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
+
+    // TODO Check/convert to bool
+
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in loop");
         return false;
@@ -511,7 +526,8 @@ bool Parser::returnStatement() {
     if (!isTokenType(T_RETURN)) {
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
     return true;
@@ -532,14 +548,14 @@ bool Parser::identifier(Symbol &id) {
 
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
  */
-bool Parser::expression() {
+bool Parser::expression(Symbol &exp) {
     // Optional
     bool nt = isTokenType(T_NOT);
 
-    if (!arithOp()) {
+    if (!arithOp(exp)) {
         return false;
     }
-    if (!expression_p()) {
+    if (!expression_p(exp)) {
         return false;
     }
     return true;
@@ -550,13 +566,17 @@ bool Parser::expression() {
  *    | | <arithOp> <expression_prime>
  *    | null
  */
-bool Parser::expression_p() {
+bool Parser::expression_p(Symbol &exp) {
     if (isTokenType(T_AND) ||
         isTokenType(T_OR)) {
-        if (!arithOp()) {
+        Symbol rhs;
+        if (!arithOp(rhs)) {
             return false;
         }
-        if (!expression_p()) {
+
+        // TODO Check/convert type for & |
+
+        if (!expression_p(exp)) {
             return false;
         }
     }
@@ -565,11 +585,11 @@ bool Parser::expression_p() {
 
 /* <arithOp> ::= <relation> <arithOp_prime>
  */
-bool Parser::arithOp() {
-    if (!relation()) {
+bool Parser::arithOp(Symbol &arOp) {
+    if (!relation(arOp)) {
         return false;
     }
-    if (!arithOp_p()) {
+    if (!arithOp_p(arOp)) {
         return false;
     }
     return true;
@@ -580,13 +600,17 @@ bool Parser::arithOp() {
  *    | - <relation> <arithOp_prime>
  *    | null
  */
-bool Parser::arithOp_p() {
+bool Parser::arithOp_p(Symbol &arOp) {
     if (isTokenType(T_PLUS) ||
         isTokenType(T_MINUS)) {
-        if (!relation()) {
+        Symbol rhs;
+        if (!relation(rhs)) {
             return false;
         }
-        if (!arithOp_p()) {
+
+        // TODO Check/convert type for + -
+
+        if (!arithOp_p(arOp)) {
             return false;
         }
     }
@@ -595,11 +619,11 @@ bool Parser::arithOp_p() {
 
 /* <relation> ::= <term> <relation_prime>
  */
-bool Parser::relation() {
-    if (!term()) {
+bool Parser::relation(Symbol &rel) {
+    if (!term(rel)) {
         return false;
     }
-    if (!relation_p()) {
+    if (!relation_p(rel)) {
         return false;
     }
     return true;
@@ -614,17 +638,21 @@ bool Parser::relation() {
  *    | != <term> <relation_prime>
  *    | null
  */
-bool Parser::relation_p() {
+bool Parser::relation_p(Symbol &rel) {
     if (isTokenType(T_LESS) ||
         isTokenType(T_GREATER_EQ) ||
         isTokenType(T_LESS_EQ) ||
         isTokenType(T_GREATER) ||
         isTokenType(T_EQUAL) ||
         isTokenType(T_NOT_EQUAL)) {
-        if (!term()) {
+        Symbol rhs;
+        if (!term(rhs)) {
             return false;
         }
-        if (!relation_p()) {
+
+        // TODO Check/convert type for rel ops
+
+        if (!relation_p(rel)) {
             return false;
         }
     }
@@ -633,11 +661,11 @@ bool Parser::relation_p() {
 
 /* <term> ::= <factor> <term_prime>
  */
-bool Parser::term() {
-    if (!factor()) {
+bool Parser::term(Symbol &trm) {
+    if (!factor(trm)) {
         return false;
     }
-    if (!term_p()) {
+    if (!term_p(trm)) {
         return false;
     }
     return true;
@@ -648,13 +676,17 @@ bool Parser::term() {
  *    | / <factor> <term_prime>
  *    | null
  */
-bool Parser::term_p() {
+bool Parser::term_p(Symbol &trm) {
     if (isTokenType(T_MULTIPLY) ||
         isTokenType(T_DIVIDE)) {
-        if (!factor()) {
+        Symbol rhs;
+        if (!factor(rhs)) {
             return false;
         }
-        if (!term_p()) {
+
+        // TODO Check/convert type for * /
+
+        if (!term_p(trm)) {
             return false;
         }
     }
@@ -670,36 +702,37 @@ bool Parser::term_p() {
  *    | true
  *    | false
  */
-bool Parser::factor() {
-    Symbol id;
-
+bool Parser::factor(Symbol &fac) {
     if (isTokenType(T_LPAREN)) {
-        if (!expression()) {
+        if (!expression(fac)) {
             return false;
         }
         if (!isTokenType(T_RPAREN)) {
             error("Missing \')\' in expression factor");
             return false;
         }
-    } else if (procCallOrName(id)) {
+    } else if (procCallOrName(fac)) {
         // Both procedure call and name start with identifier
 
     } else if (isTokenType(T_MINUS)) {
-        if (name(id)) {
+        if (name(fac)) {
 
-        } else if (number(id)) {
+        } else if (number(fac)) {
 
         } else {
             error("Invalid use of \'-\'");
             return false;
         }
-    } else if (number(id)) {
+    } else if (number(fac)) {
         
-    } else if (string(id)) {
+    } else if (string(fac)) {
         
-    } else if (isTokenType(T_TRUE) ||
-               isTokenType(T_FALSE)) {
-
+    } else if (isTokenType(T_TRUE)) {
+        fac.tokenType = T_TRUE;
+        fac.type = TYPE_BOOL;
+    } else if (isTokenType(T_FALSE)) {
+        fac.tokenType = T_FALSE;
+        fac.type = TYPE_BOOL;
     } else {
         return false;
     }
@@ -742,9 +775,13 @@ bool Parser::procCallOrName(Symbol &id) {
 
         // Optional
         if (isTokenType(T_LBRACKET)) {
-            if (!expression()) {
+            Symbol exp;
+            if (!expression(exp)) {
                 return false;
             }
+
+            // TODO Check valid access
+
             if (!isTokenType(T_RBRACKET)) {
                 error("Missing \']\' in name");
                 return false;
@@ -771,9 +808,13 @@ bool Parser::name(Symbol &id) {
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        if (!expression()) {
+        Symbol exp;
+        if (!expression(exp)) {
             return false;
         }
+
+        // TODO Check valid access
+
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in name");
             return false;
@@ -787,16 +828,22 @@ bool Parser::name(Symbol &id) {
  *    | <expression>
  */
 bool Parser::argumentList() {
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
 
+    // TODO Check type match to param
+
     // Optional
     while (isTokenType(T_COMMA)) {
-        if (!expression()) {
+        exp = Symbol();
+        if (!expression(exp)) {
             error("Invalid argument");
             return false;
         }
+
+        // TODO Check type match to param
     }
     return true;
 }
