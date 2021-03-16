@@ -18,13 +18,19 @@ PROGRAM grant IS
 			tst := purString("passed");
 		end procedure;
 		begin
+			i := for_proc(); // this should fail; we do not allow forward references.
 			if(true) then jake := jake + 1;
 			else zach := zach + RYAN[2];
 		end if;
 	end procedure;
 
 	procedure for_proc : integer()
-                variable i : integer;
+                variable x : bool;
+		procedure dummy2 : float()
+		begin
+			  i := 3;  // this should fail; we do not allow forward references
+		end procedure
+                global variable i : integer;
 		begin
 			for(i := 0; i < zach)
 				ryan[1] := zach + i;
