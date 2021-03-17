@@ -449,7 +449,13 @@ bool Parser::ifStatement() {
         return false;
     }
 
-    // TODO Check/convert to bool
+    // Type check/convert to bool
+    if (exp.type == TYPE_INT) {
+        exp.type = TYPE_BOOL;
+
+    } else if (exp.type != TYPE_BOOL) {
+        error("If statement expressions must evaluate to bool");
+    }
 
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in if statement");
@@ -506,7 +512,14 @@ bool Parser::loopStatement() {
         return false;
     }
 
-    // TODO Check/convert to bool
+    // Type check/convert to bool
+    if (exp.type == TYPE_INT) {
+        exp.type = TYPE_BOOL;
+
+    } else if (exp.type != TYPE_BOOL) {
+        error("Loop statement expressions must evaluate to bool");
+    }
+
 
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in loop");
