@@ -7,7 +7,7 @@ Symbol::Symbol() {
     type = TYPE_UNK;
     isGlobal = false;
     isArr = false;
-    arrBound = 0;
+    arrSize = 0;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p) {
@@ -17,7 +17,7 @@ Symbol::Symbol(std::string id_p, TokenType tok_p) {
     type = TYPE_UNK;
     isGlobal = false;
     isArr = false;
-    arrBound = 0;
+    arrSize = 0;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p) {
@@ -27,5 +27,5 @@ Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p)
     type = type_p;
     isGlobal = false;
     isArr = false;
-    arrBound = 0;
+    arrSize = 0;
 }

@@ -342,7 +342,7 @@ bool Parser::bound(Symbol &id) {
     int temp = token.getIntVal();
 
     if (number(num) && num.type == TYPE_INT) {
-        id.arrBound = temp;
+        id.arrSize = temp;
         return true;
     } else {
         error("Invalid bound. Must be an integer.");

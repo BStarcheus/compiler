@@ -54,9 +54,9 @@ struct Symbol {
 
     bool isGlobal;
 
-    // Is it an array, and if so what is the bound
+    // Is it an array, and if so what is the size (number of elements)
     bool isArr;
-    int arrBound;
+    int arrSize;
 
     // Parameter list for procedures
     std::vector<Symbol> params;
