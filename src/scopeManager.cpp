@@ -26,6 +26,33 @@ ScopeManager::ScopeManager(bool dbg) {
     global->setSymbol("not", Symbol("not", T_NOT, ST_KEYWORD, TYPE_UNK));
     global->setSymbol("true", Symbol("true", T_TRUE, ST_KEYWORD, TYPE_BOOL));
     global->setSymbol("false", Symbol("false", T_FALSE, ST_KEYWORD, TYPE_BOOL));
+
+
+    // TODO Properly add after runtime funcs created
+    global->setSymbol("getbool", Symbol("getbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL));
+    global->setSymbol("getinteger", Symbol("getinteger", T_IDENTIFIER, ST_PROCEDURE, TYPE_INT));
+    global->setSymbol("getfloat", Symbol("getfloat", T_IDENTIFIER, ST_PROCEDURE, TYPE_FLOAT));
+    global->setSymbol("getstring", Symbol("getstring", T_IDENTIFIER, ST_PROCEDURE, TYPE_STRING));
+    
+    Symbol s = Symbol("putbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_BOOL));
+    global->setSymbol("putbool", s);
+
+    s = Symbol("putinteger", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_INT));
+    global->setSymbol("putinteger", s);
+
+    s = Symbol("putfloat", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_FLOAT));
+    global->setSymbol("putfloat", s);
+
+    s = Symbol("putstring", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_STRING));
+    global->setSymbol("putstring", s);
+
+    s = Symbol("sqrt", T_IDENTIFIER, ST_PROCEDURE, TYPE_FLOAT);
+    s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_INT));
+    global->setSymbol("sqrt", s);
 }
 
 ScopeManager::~ScopeManager() {

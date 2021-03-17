@@ -798,10 +798,8 @@ bool Parser::procCallOrName(Symbol &id) {
 
     // Error if identifier is not in local or global scope
     if (!scoper->hasSymbol(id.id)) {
-        debug("\'" + id.id + "\' not declared in scope");
-        /* TODO: Uncomment after runtime functions complete
         error("\'" + id.id + "\' not declared in scope");
-        return false;*/
+        return false;
     }
     // Get from local or global
     id = scoper->getSymbol(id.id);
