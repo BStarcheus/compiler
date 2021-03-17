@@ -555,6 +555,15 @@ bool Parser::expression(Symbol &exp) {
     if (!arithOp(exp)) {
         return false;
     }
+
+    // Type check for not op
+    // Only valid for bool and int
+    if (nt) {
+        if (exp.type != TYPE_BOOL && exp.type != TYPE_INT) {
+            error("\'not\' operator only defined for bool and int");
+        }
+    }
+
     if (!expression_p(exp)) {
         return false;
     }
@@ -574,7 +583,8 @@ bool Parser::expression_p(Symbol &exp) {
             return false;
         }
 
-        // TODO Check/convert type for & |
+        // Check/convert type for & |
+        expressionTypeCheck(exp, rhs);
 
         if (!expression_p(exp)) {
             return false;
@@ -1002,6 +1012,23 @@ bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
 
     if (!compatible) {
         error("Incompatible relation operands");
+    }
+    return compatible;
+}
+
+/* Type checking for expression operators & |
+ */
+bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
+    bool compatible = false;
+    
+    if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
+        compatible = true;
+    } else if (lhs.type == TYPE_INT && rhs.type == TYPE_INT) {
+        compatible = true;
+    }
+
+    if (!compatible) {
+        error("Expression ops only defined for bool and int");
     }
     return compatible;
 }
