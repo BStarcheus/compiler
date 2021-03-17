@@ -387,7 +387,10 @@ bool Parser::assignmentStatement() {
         return false;
     }
 
-    // TODO Type check
+    // Type check
+    if (!assignmentTypeCheck(dest, exp)) {
+        return false;
+    }
 
     return true;
 }
@@ -1056,6 +1059,63 @@ bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
 
     if (!compatible) {
         error("Expression ops only defined for bool and int");
+    }
+    return compatible;
+}
+
+
+/* Type checking for assignment operator =
+ */
+bool Parser::assignmentTypeCheck(Symbol &dest, Symbol &exp) {
+    bool compatible = false;
+    // If types are compatible, convert exp to type of dest
+    // int <-> bool
+    // int <-> float
+    // Otherwise types must match exactly
+    
+    if (dest.type == TYPE_INT) {
+        if (exp.type == TYPE_BOOL) {
+            compatible = true;
+            // Convert exp to int
+            exp.type = TYPE_INT;
+
+        } else if (exp.type == TYPE_FLOAT) {
+            compatible = true;
+            // Convert exp to int
+            exp.type = TYPE_INT;
+
+        } else if (exp.type == TYPE_INT) {
+            compatible = true;
+        }
+
+    } else if (dest.type == TYPE_FLOAT) {
+        if (exp.type == TYPE_FLOAT) {
+            compatible = true;
+
+        } else if (exp.type == TYPE_INT) {
+            compatible = true;
+            // Convert exp to float
+            exp.type = TYPE_FLOAT;
+        }
+
+    } else if (dest.type == TYPE_BOOL) {
+        if (exp.type == TYPE_BOOL) {
+            compatible = true;
+
+        } else if (exp.type == TYPE_INT) {
+            compatible = true;
+            // Convert exp to bool
+            exp.type = TYPE_BOOL;
+        }
+
+    } else if (dest.type == TYPE_STRING) {
+        if (exp.type == TYPE_STRING) {
+            compatible = true;
+        }
+    }
+
+    if (!compatible) {
+        error("Incompatible types for assignment");
     }
     return compatible;
 }

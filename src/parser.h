@@ -68,5 +68,6 @@ class Parser {
         bool arithmeticTypeCheck(Symbol &lhs, Symbol &rhs);
         bool relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op);
         bool expressionTypeCheck(Symbol &lhs, Symbol &rhs);
+        bool assignmentTypeCheck(Symbol &dest, Symbol &exp);
 };
 #endif
