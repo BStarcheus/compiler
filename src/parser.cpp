@@ -407,6 +407,8 @@ bool Parser::destination(Symbol &id) {
     // Get from local or global
     id = scoper->getSymbol(id.id);
 
+    // TODO if nothing different during codegen, call nameHelper() instead
+    
     // Optional
     if (isTokenType(T_LBRACKET)) {
         Symbol exp;
@@ -414,7 +416,12 @@ bool Parser::destination(Symbol &id) {
             return false;
         }
 
-        // TODO Check valid access
+        // Check valid access
+        if (exp.type != TYPE_INT) {
+            error("Array access expression must be type integer");
+            return false;
+        }
+        // TODO Codegen: check exp value < id.arrSize
 
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in destination");
@@ -763,10 +770,10 @@ bool Parser::factor(Symbol &fac) {
 }
 
 /* Helper to handle procedure call or name in factor
- */
-/* <procedure_call> ::= <identifier> ( [<argument_list>] )
- */
-/* <name> ::= <identifier> [ [ <expression> ] ]
+ *
+ * <procedure_call> ::= <identifier> ( [<argument_list>] )
+ *
+ * <name> ::= <identifier> [ [ <expression> ] ]
  */
 bool Parser::procCallOrName(Symbol &id) {
     if (!identifier(id)) {
@@ -826,7 +833,9 @@ bool Parser::name(Symbol &id) {
     return true;
 }
 
-// Common code between name() and procCallOrName()
+/* Common code between name() and procCallOrName()
+ * Handle array access
+ */
 bool Parser::nameHelper(Symbol &id) {
     // Optional
     if (isTokenType(T_LBRACKET)) {
@@ -835,7 +844,12 @@ bool Parser::nameHelper(Symbol &id) {
             return false;
         }
 
-        // TODO Check valid access
+        // Check valid access
+        if (exp.type != TYPE_INT) {
+            error("Array access expression must be type integer");
+            return false;
+        }
+        // TODO Codegen: check exp value < id.arrSize
 
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in name");
