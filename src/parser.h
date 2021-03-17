@@ -66,5 +66,6 @@ class Parser {
         bool statementBlockHelper();
 
         bool arithmeticTypeCheck(Symbol &lhs, Symbol &rhs);
+        bool relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op);
 };
 #endif

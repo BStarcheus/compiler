@@ -642,6 +642,7 @@ bool Parser::relation(Symbol &rel) {
  *    | null
  */
 bool Parser::relation_p(Symbol &rel) {
+    Token op = token;
     if (isTokenType(T_LESS) ||
         isTokenType(T_GREATER_EQ) ||
         isTokenType(T_LESS_EQ) ||
@@ -653,7 +654,13 @@ bool Parser::relation_p(Symbol &rel) {
             return false;
         }
 
-        // TODO Check/convert type for rel ops
+        // Check/convert type for rel ops
+        if (!relationTypeCheck(rel, rhs, op)) {
+            return false;
+        }
+
+        // Compatible relation evaluates to bool
+        rel.type = TYPE_BOOL;
 
         if (!relation_p(rel)) {
             return false;
@@ -917,11 +924,11 @@ bool Parser::statementBlockHelper() {
 }
 
 
-/* Type checking for + - * / operators
+/* Type checking for arithmetic operators + - * / 
  */
 bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
     if ((lhs.type != TYPE_INT && lhs.type != TYPE_FLOAT) ||
-        (rhs.type != TYPE_INT && lhs.type != TYPE_FLOAT)) {
+        (rhs.type != TYPE_INT && rhs.type != TYPE_FLOAT)) {
         error("Arithmetic only defined for int and float");
         return false;
     }
@@ -941,4 +948,60 @@ bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
         // Else both float, types match
     }
     return true;
+}
+
+/* Type checking for relational operators < <= > >= == !=
+ */
+bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
+    bool compatible = false;
+    // If int is present with float or bool, convert int to that type
+    // Otherwise types must match exactly
+    
+    if (lhs.type == TYPE_INT) {
+        if (rhs.type == TYPE_BOOL) {
+            compatible = true;
+            // Convert lhs to bool
+            lhs.type = TYPE_BOOL;
+
+        } else if (rhs.type == TYPE_FLOAT) {
+            compatible = true;
+            // Convert lhs to float
+            lhs.type = TYPE_FLOAT;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+        }
+
+    } else if (lhs.type == TYPE_FLOAT) {
+        if (rhs.type == TYPE_FLOAT) {
+            compatible = true;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+            // Convert rhs to float
+            rhs.type = TYPE_FLOAT;
+        }
+
+    } else if (lhs.type == TYPE_BOOL) {
+        if (rhs.type == TYPE_BOOL) {
+            compatible = true;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+            // Convert rhs to bool
+            rhs.type = TYPE_BOOL;
+        }
+
+    } else if (lhs.type == TYPE_STRING) {
+        // Strings only valid for == !=
+        if (rhs.type == TYPE_STRING && 
+            (op.type == T_EQUAL || op.type == T_NOT_EQUAL)) {
+            compatible = true;
+        }
+    }
+
+    if (!compatible) {
+        error("Incompatible relation operands");
+    }
+    return compatible;
 }
