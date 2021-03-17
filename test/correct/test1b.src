@@ -15,7 +15,7 @@ PROGRAM grant IS
 		variable tst : bool;
 		begin
 			i := 4.5;
-			tst := purString("passed");
+			tst := putString("passed");
 			return (0);
 		end procedure;
 		begin
