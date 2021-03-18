@@ -14,11 +14,18 @@ class ScopeManager {
         Symbol getSymbol(std::string s, bool g);
         bool hasSymbol(std::string s);
         bool hasSymbol(std::string s, bool g);
+
+        void setCurrentProcedure(Symbol proc);
+        Symbol getCurrentProcedure();
+
         void printScope(bool g);
         bool debugFlag;
         bool errorFlag;
     private:
         Scope* global;
         Scope* local;
+
+        // Used to find current procedure symbol in local scope
+        std::string _CUR_PROC = "_CUR_PROC";
 };
 #endif
