@@ -8,6 +8,7 @@ Symbol::Symbol() {
     isGlobal = false;
     isArr = false;
     arrSize = 0;
+    isIndexed = false;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p) {
@@ -18,6 +19,7 @@ Symbol::Symbol(std::string id_p, TokenType tok_p) {
     isGlobal = false;
     isArr = false;
     arrSize = 0;
+    isIndexed = false;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p) {
@@ -28,6 +30,7 @@ Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p)
     isGlobal = false;
     isArr = false;
     arrSize = 0;
+    isIndexed = false;
 }
 
 // Get type name from type number

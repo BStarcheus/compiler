@@ -62,6 +62,10 @@ struct Symbol {
     bool isArr;
     int arrSize;
 
+    // Is the identifier indexed: a[i]
+    // Note: Arrays can be referenced with or without indexes
+    bool isIndexed;
+
     // Parameter list for procedures
     std::vector<Symbol> params;
 };
