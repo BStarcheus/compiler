@@ -1,11 +1,11 @@
 program Maths is
 
 variable value : integer;
-variable tmp : integer;
+variable tmp2 : float;  //this variable will be hidden by the declaration in Fib
 variable out : bool;
 
 procedure Fib : integer(variable val : integer)
-	variable tmp1 : integer;
+    variable tmp1 : integer;
     variable tmp2 : integer;
     variable ret : integer;
 	begin
@@ -20,7 +20,7 @@ procedure Fib : integer(variable val : integer)
 	val := val - 1;
 	tmp1 := Fib(val);
 	val := val - 1;
-	tmp1 := Fib(val);
+	tmp2 := Fib(val);
 	ret := tmp1 + tmp2;
 	return ret;
 end procedure;

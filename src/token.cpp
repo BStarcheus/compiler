@@ -1,7 +1,7 @@
-#include "tokenType.h"
+#include "token.h"
 
 // Get token name from type number
-const char* getTokenTypeName(Token t) {
+const char* getTokenTypeName(TokenType t) {
     static bool isInit;
     static const char* names[351];
     if (!isInit) {
@@ -63,5 +63,5 @@ const char* getTokenTypeName(Token t) {
         isInit = true;
     }   
 
-    return names[t.type];
+    return names[t];
 }

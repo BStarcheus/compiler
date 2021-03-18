@@ -131,7 +131,7 @@ void Scanner::debug(std::string msg) {
 void Scanner::debug(Token t) {
     if (debugFlag) {
         std::cout << "token: " << std::left;
-        std::cout << std::setw(15) << getTokenTypeName(t);
+        std::cout << std::setw(15) << getTokenTypeName(t.type);
         std::cout << t.val << std::endl;
     }
 }
@@ -383,7 +383,7 @@ Token Scanner::scanToken() {
 
             if (scoper->hasSymbol(token.val, true)) {
                 // Check if reserved word, or id already in table
-                token.type = scoper->getSymbol(token.val, true).type;
+                token.type = scoper->getSymbol(token.val, true).tokenType;
 
                 // Note: Only global table checked since all reserved words in global.
                 // If in local table, it would be an id anyway.

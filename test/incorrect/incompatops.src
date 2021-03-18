@@ -1,0 +1,20 @@
+program test_program is
+    variable out : integer;
+    
+    procedure test : integer()
+        variable b : bool;
+        variable f : float;
+        variable s : string;
+        variable i : integer;
+        variable result : integer;
+    begin
+        if (s <= s) then
+            result := -1;
+            return result;
+        end if;
+        result := 1;
+	    return result;
+    end procedure;
+begin
+    out := test();
+end program.

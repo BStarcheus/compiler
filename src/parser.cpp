@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "tokenType.h"
+#include "token.h"
 #include <iostream>
 
 Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
@@ -58,7 +58,7 @@ bool Parser::program() {
         error("Missing \'.\' at end of program");
         return false;
     }
-    if (token.type != T_EOF) {
+    if (!isTokenType(T_EOF)) {
         return false;
     }
     scoper->exitScope();
@@ -71,9 +71,9 @@ bool Parser::programHeader() {
     if (!isTokenType(T_PROGRAM)) {
         return false;
     }
-    Token id;
+    Symbol id;
     if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+        error("Invalid identifier \'" + id.id + "\'");
         return false;
     }
     if (!isTokenType(T_IS)) {
@@ -116,11 +116,12 @@ bool Parser::programBody() {
  *    | [ global ] <variable_declaration>
  */
 bool Parser::declaration() {
-    bool isGlobal = isTokenType(T_GLOBAL);
+    Symbol decl;
+    decl.isGlobal = isTokenType(T_GLOBAL);
 
-    if (procedureDeclaration(isGlobal)) {
+    if (procedureDeclaration(decl)) {
 
-    } else if (variableDeclaration(isGlobal)) {
+    } else if (variableDeclaration(decl)) {
 
     } else {
         return false;
@@ -131,39 +132,64 @@ bool Parser::declaration() {
 
 /* <procedure_declaration> ::= <procedure_header> <procedure_body>
  */
-bool Parser::procedureDeclaration(bool &isGlobal) {
-    if (!procedureHeader(isGlobal)) {
+bool Parser::procedureDeclaration(Symbol &decl) {
+    if (!procedureHeader(decl)) {
         return false;
     }
+
+    decl.symbolType = ST_PROCEDURE;
+
+    // Error if duplicate name within function scope
+    if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+        error("Procedure name \'" + decl.id + "\' already used in this scope");
+        return false;
+    }
+    // Set inside function, so recursive calls possible
+    scoper->setSymbol(decl.id, decl, decl.isGlobal);
+
+    // Set inside function so proc symbol can be easily found
+    // for return type checking
+    scoper->setCurrentProcedure(decl);
+
+
     if (!procedureBody()) {
         return false;
     }
     scoper->exitScope();
+
+    // If global, already added to global table above
+    if (!decl.isGlobal) {
+        // Error if duplicate name in local scope outside the function
+        if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+            error("Procedure name \'" + decl.id + "\' already used in this scope");
+            return false;
+        }
+        // Set in local scope outside the function
+        scoper->setSymbol(decl.id, decl, decl.isGlobal);
+    }
+
     return true;
 }
 
 /* <procedure_header> ::=
  *      procedure <identifier> : <type_mark> ( [<parameter_list>] )
  */
-bool Parser::procedureHeader(bool &isGlobal) {
+bool Parser::procedureHeader(Symbol &decl) {
     if (!isTokenType(T_PROCEDURE)) {
         return false;
     }
 
     scoper->newScope();
-    Token id;
-    if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+    if (!identifier(decl)) {
+        error("Invalid identifier \'" + decl.id + "\'");
         return false;
     }
-    scoper->setProcSymbol(id.val, id, isGlobal);
-
 
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in procedure header");
         return false;
     }
-    if (!typeMark()) {
+    if (!typeMark(decl)) {
         error("Invalid type mark");
         return false;
     }
@@ -173,7 +199,10 @@ bool Parser::procedureHeader(bool &isGlobal) {
     }
 
     // Optional
-    parameterList();
+    parameterList(decl);
+    if (errorFlag) {
+        return false;
+    }
     
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in procedure header");
@@ -186,26 +215,31 @@ bool Parser::procedureHeader(bool &isGlobal) {
  *      <parameter> , <parameter_list>
  *    | <parameter>
  */
-bool Parser::parameterList() {
-    if (!parameter()) {
+bool Parser::parameterList(Symbol &decl) {
+    Symbol param;
+    if (!parameter(param)) {
         return false;
     }
+    // Add to procedure param list
+    decl.params.push_back(param);
 
     // Optional
     while (isTokenType(T_COMMA)) {
-        if (!parameter()) {
+        param = Symbol();
+        if (!parameter(param)) {
             error("Invalid parameter");
             return false;
         }
+        // Add to procedure param list
+        decl.params.push_back(param);
     }
     return true;
 }
 
 /* <parameter> ::= <variable_declaration>
  */
-bool Parser::parameter() {
-    bool g = false;
-    return variableDeclaration(g);
+bool Parser::parameter(Symbol &param) {
+    return variableDeclaration(param);
 }
 
 /* <procedure_body> ::=
@@ -240,38 +274,51 @@ bool Parser::procedureBody() {
 /* <variable_declaration> ::=
  *      variable <identifier> : <type_mark> [ [ <bound> ] ]
  */
-bool Parser::variableDeclaration(bool &isGlobal) {
+bool Parser::variableDeclaration(Symbol &decl) {
     if (!isTokenType(T_VARIABLE)) {
         return false;
     }
 
-    Token id;
-    if (!identifier(id)) {
-        error("Invalid identifier \'" + id.val + "\'");
+    decl.symbolType = ST_VARIABLE;
+
+    if (!identifier(decl)) {
+        error("Invalid identifier \'" + decl.id + "\'");
         return false;
     }
-    scoper->setSymbol(id.val, id, isGlobal);
 
+    // Error if duplicate name within scope
+    if (scoper->hasSymbol(decl.id, decl.isGlobal)) {
+        error("Variable name \'" + decl.id + "\' already used in this scope");
+        return false;
+    }
+    
     if (!isTokenType(T_COLON)) {
         error("Missing \':\' in variable declaration");
         return false;
     }
-    if (!typeMark()) {
+    if (!typeMark(decl)) {
         error("Invalid type mark");
         return false;
     }
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        if (!bound()) {
+        if (!bound(decl)) {
             error("Invalid bound");
             return false;
         }
+
+        decl.isArr = true;
+
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in variable bound");
             return false;
         }
     }
+
+    // Set in scope
+    scoper->setSymbol(decl.id, decl, decl.isGlobal);
+    
     return true;
 }
 
@@ -279,12 +326,15 @@ bool Parser::variableDeclaration(bool &isGlobal) {
 /* <type_mark> ::=
  *      integer | float | string | bool
  */
-bool Parser::typeMark() {
-    if (isTokenType(T_INTEGER) ||
-        isTokenType(T_FLOAT) ||
-        isTokenType(T_STRING) ||
-        isTokenType(T_BOOL)) {
-
+bool Parser::typeMark(Symbol &id) {
+    if (isTokenType(T_INTEGER)) {
+        id.type = TYPE_INT;
+    } else if (isTokenType(T_FLOAT)) {
+        id.type = TYPE_FLOAT;
+    } else if (isTokenType(T_STRING)) {
+        id.type = TYPE_STRING;
+    } else if (isTokenType(T_BOOL)) {
+        id.type = TYPE_BOOL;
     } else {
         return false;
     }
@@ -293,8 +343,19 @@ bool Parser::typeMark() {
 
 /* <bound> ::= <number>
  */
-bool Parser::bound() {
-    return number();
+bool Parser::bound(Symbol &id) {
+    Symbol num;
+
+    // TODO: Change impl with LLVM
+    int temp = token.getIntVal();
+
+    if (number(num) && num.type == TYPE_INT) {
+        id.arrSize = temp;
+        return true;
+    } else {
+        error("Invalid bound. Must be an integer.");
+        return false;
+    }
 }
 
 
@@ -319,59 +380,46 @@ bool Parser::statement() {
     return true;
 }
 
-/* <procedure_call> ::= <identifier> ( [<argument_list>] )
- */
-bool Parser::procedureCall(Token &id) {
-    if (!identifier(id)) {
-        return false;
-    }
-    if (!isTokenType(T_LPAREN)) {
-        return false;
-    }
-
-    // Optional
-    argumentList();
-
-    if (!isTokenType(T_RPAREN)) {
-        error("Missing \')\' in procedure call");
-        return false;
-    }
-    return true;
-}
-
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
-    Token id;
+    Symbol dest, exp;
 
-    if (!destination(id)) {
+    if (!destination(dest)) {
         return false;
     }
     if (!isTokenType(T_ASSIGNMENT)) {
         return false;
     }
-    if (!expression()) {
+    if (!expression(exp)) {
         return false;
     }
+
+    // Type check
+    if (!compatibleTypeCheck(dest, exp)) {
+        return false;
+    }
+
     return true;
 }
 
 /* <destination> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::destination(Token &id) {
+bool Parser::destination(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
 
-    // Optional
-    if (isTokenType(T_LBRACKET)) {
-        if (!expression()) {
-            return false;
-        }
-        if (!isTokenType(T_RBRACKET)) {
-            error("Missing \']\' in destination");
-            return false;
-        }
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
+
+    if (!arrayIndexHelper(id)) {
+        return false;
     }
     return true;
 }
@@ -389,9 +437,19 @@ bool Parser::ifStatement() {
         error("Missing \'(\' in if statement");
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
+
+    // Type check/convert to bool
+    if (exp.type == TYPE_INT) {
+        exp.type = TYPE_BOOL;
+
+    } else if (exp.type != TYPE_BOOL) {
+        error("If statement expressions must evaluate to bool");
+    }
+
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in if statement");
         return false;
@@ -404,6 +462,7 @@ bool Parser::ifStatement() {
         return false;
     }
 
+    // Optional
     if (isTokenType(T_ELSE)) {
         if (!statementBlockHelper()) {
             return false;
@@ -441,9 +500,20 @@ bool Parser::loopStatement() {
         error("Missing \':\' in loop");
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
+
+    // Type check/convert to bool
+    if (exp.type == TYPE_INT) {
+        exp.type = TYPE_BOOL;
+
+    } else if (exp.type != TYPE_BOOL) {
+        error("Loop statement expressions must evaluate to bool");
+    }
+
+
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in loop");
         return false;
@@ -469,28 +539,55 @@ bool Parser::returnStatement() {
     if (!isTokenType(T_RETURN)) {
         return false;
     }
-    if (!expression()) {
+    Symbol exp;
+    if (!expression(exp)) {
         return false;
     }
+
+    // Type check match to procedure return type
+    Symbol proc = scoper->getCurrentProcedure();
+    if (proc.type == TYPE_UNK) {
+        error("Return statements must be within a procedure");
+        return false;
+    } else if (!compatibleTypeCheck(proc, exp)) {
+        return false;
+    }
+
     return true;
 }
 
 
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
-bool Parser::identifier(Token &id) {
-    id = token;
+bool Parser::identifier(Symbol &id) {
+    // Check without consuming
+    if (token.type == T_IDENTIFIER) {
+        id.id = token.val;
+        id.tokenType = token.type;
+    }
+    // Consume token
     return isTokenType(T_IDENTIFIER);
 }
 
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
  */
-bool Parser::expression() {
-    isTokenType(T_NOT);
-    if (!arithOp()) {
+bool Parser::expression(Symbol &exp) {
+    // Optional
+    bool nt = isTokenType(T_NOT);
+
+    if (!arithOp(exp)) {
         return false;
     }
-    if (!expression_p()) {
+
+    // Type check for not op
+    // Only valid for bool and int
+    if (nt) {
+        if (exp.type != TYPE_BOOL && exp.type != TYPE_INT) {
+            error("\'not\' operator only defined for bool and int");
+        }
+    }
+
+    if (!expression_p(exp)) {
         return false;
     }
     return true;
@@ -501,13 +598,18 @@ bool Parser::expression() {
  *    | | <arithOp> <expression_prime>
  *    | null
  */
-bool Parser::expression_p() {
+bool Parser::expression_p(Symbol &exp) {
     if (isTokenType(T_AND) ||
         isTokenType(T_OR)) {
-        if (!arithOp()) {
+        Symbol rhs;
+        if (!arithOp(rhs)) {
             return false;
         }
-        if (!expression_p()) {
+
+        // Check/convert type for & |
+        expressionTypeCheck(exp, rhs);
+
+        if (!expression_p(exp)) {
             return false;
         }
     }
@@ -516,11 +618,11 @@ bool Parser::expression_p() {
 
 /* <arithOp> ::= <relation> <arithOp_prime>
  */
-bool Parser::arithOp() {
-    if (!relation()) {
+bool Parser::arithOp(Symbol &arOp) {
+    if (!relation(arOp)) {
         return false;
     }
-    if (!arithOp_p()) {
+    if (!arithOp_p(arOp)) {
         return false;
     }
     return true;
@@ -531,13 +633,20 @@ bool Parser::arithOp() {
  *    | - <relation> <arithOp_prime>
  *    | null
  */
-bool Parser::arithOp_p() {
+bool Parser::arithOp_p(Symbol &arOp) {
     if (isTokenType(T_PLUS) ||
         isTokenType(T_MINUS)) {
-        if (!relation()) {
+        Symbol rhs;
+        if (!relation(rhs)) {
             return false;
         }
-        if (!arithOp_p()) {
+
+        // Check/convert type for + -
+        if (!arithmeticTypeCheck(arOp, rhs)) {
+            return false;
+        }
+
+        if (!arithOp_p(arOp)) {
             return false;
         }
     }
@@ -546,11 +655,11 @@ bool Parser::arithOp_p() {
 
 /* <relation> ::= <term> <relation_prime>
  */
-bool Parser::relation() {
-    if (!term()) {
+bool Parser::relation(Symbol &rel) {
+    if (!term(rel)) {
         return false;
     }
-    if (!relation_p()) {
+    if (!relation_p(rel)) {
         return false;
     }
     return true;
@@ -565,17 +674,28 @@ bool Parser::relation() {
  *    | != <term> <relation_prime>
  *    | null
  */
-bool Parser::relation_p() {
+bool Parser::relation_p(Symbol &rel) {
+    Token op = token;
     if (isTokenType(T_LESS) ||
         isTokenType(T_GREATER_EQ) ||
         isTokenType(T_LESS_EQ) ||
         isTokenType(T_GREATER) ||
         isTokenType(T_EQUAL) ||
         isTokenType(T_NOT_EQUAL)) {
-        if (!term()) {
+        Symbol rhs;
+        if (!term(rhs)) {
             return false;
         }
-        if (!relation_p()) {
+
+        // Check/convert type for rel ops
+        if (!relationTypeCheck(rel, rhs, op)) {
+            return false;
+        }
+
+        // Compatible relation evaluates to bool
+        rel.type = TYPE_BOOL;
+
+        if (!relation_p(rel)) {
             return false;
         }
     }
@@ -584,11 +704,11 @@ bool Parser::relation_p() {
 
 /* <term> ::= <factor> <term_prime>
  */
-bool Parser::term() {
-    if (!factor()) {
+bool Parser::term(Symbol &trm) {
+    if (!factor(trm)) {
         return false;
     }
-    if (!term_p()) {
+    if (!term_p(trm)) {
         return false;
     }
     return true;
@@ -599,13 +719,20 @@ bool Parser::term() {
  *    | / <factor> <term_prime>
  *    | null
  */
-bool Parser::term_p() {
+bool Parser::term_p(Symbol &trm) {
     if (isTokenType(T_MULTIPLY) ||
         isTokenType(T_DIVIDE)) {
-        if (!factor()) {
+        Symbol rhs;
+        if (!factor(rhs)) {
             return false;
         }
-        if (!term_p()) {
+
+        // Check/convert type for * /
+        if (!arithmeticTypeCheck(trm, rhs)) {
+            return false;
+        }
+
+        if (!term_p(trm)) {
             return false;
         }
     }
@@ -621,89 +748,133 @@ bool Parser::term_p() {
  *    | true
  *    | false
  */
-bool Parser::factor() {
-    Token id;
-
+bool Parser::factor(Symbol &fac) {
     if (isTokenType(T_LPAREN)) {
-        if (!expression()) {
+        if (!expression(fac)) {
             return false;
         }
         if (!isTokenType(T_RPAREN)) {
             error("Missing \')\' in expression factor");
             return false;
         }
-    } else if (procCallOrName(id)) {
+    } else if (procCallOrName(fac)) {
         // Both procedure call and name start with identifier
 
     } else if (isTokenType(T_MINUS)) {
-        if (name(id)) {
+        if (name(fac)) {
 
-        } else if (number()) {
+        } else if (number(fac)) {
 
         } else {
             error("Invalid use of \'-\'");
             return false;
         }
-    } else if (number()) {
+    } else if (number(fac)) {
         
-    } else if (isTokenType(T_STRING_VAL)) {
+    } else if (string(fac)) {
         
-    } else if (isTokenType(T_TRUE) ||
-               isTokenType(T_FALSE)) {
-
+    } else if (isTokenType(T_TRUE)) {
+        fac.tokenType = T_TRUE;
+        fac.type = TYPE_BOOL;
+    } else if (isTokenType(T_FALSE)) {
+        fac.tokenType = T_FALSE;
+        fac.type = TYPE_BOOL;
     } else {
-        error("Invalid factor");
         return false;
     }
     return true;
 }
 
 /* Helper to handle procedure call or name in factor
+ *
+ * <procedure_call> ::= <identifier> ( [<argument_list>] )
+ *
+ * <name> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::procCallOrName(Token &id) {
+bool Parser::procCallOrName(Symbol &id) {
     if (!identifier(id)) {
         return false;
     }
 
-    // Procedure call
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
+
     if (isTokenType(T_LPAREN)) {
+        // Procedure call
+
         // Optional
-        argumentList();
+        argumentList(id);
+        if (errorFlag) {
+            return false;
+        }
 
         if (!isTokenType(T_RPAREN)) {
             error("Missing \')\' in procedure call");
             return false;
         }
-        return true;
     } else {
         // Name
-
-        // Optional
-        if (isTokenType(T_LBRACKET)) {
-            if (!expression()) {
-                return false;
-            }
-            if (!isTokenType(T_RBRACKET)) {
-                error("Missing \']\' in name");
-                return false;
-            }
+        // Check if array access
+        if (!arrayIndexHelper(id)) {
+            return false;
         }
-        return true;
     }
+    return true;
 }
 
 /* <name> ::= <identifier> [ [ <expression> ] ]
  */
-bool Parser::name(Token &id) {
+bool Parser::name(Symbol &id) {
+    // This function is kept because in some cases we don't want
+    // a procedure call to be valid, only a name
+
     if (!identifier(id)) {
         return false;
     }
 
+    // Error if identifier is not in local or global scope
+    if (!scoper->hasSymbol(id.id)) {
+        error("\'" + id.id + "\' not declared in scope");
+        return false;
+    }
+    // Get from local or global
+    id = scoper->getSymbol(id.id);
+
+    if (!arrayIndexHelper(id)) {
+        return false;
+    }
+    return true;
+}
+
+/* Handle array access index
+ * [ [ <expression> ] ]
+ */
+bool Parser::arrayIndexHelper(Symbol &id) {
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        if (!expression()) {
+        Symbol exp;
+        if (!expression(exp)) {
             return false;
         }
+
+        // Check valid access
+        if (!id.isArr) {
+            error("\'" + id.id + "\' is not an array, and cannot be indexed");
+            return false;
+        } else if (exp.type != TYPE_INT) {
+            error("Array index must be type integer");
+            return false;
+        }
+        // TODO Codegen: check exp value < id.arrSize
+
+        // Identifier is indexed
+        id.isIndexed = true;
+
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in name");
             return false;
@@ -716,30 +887,89 @@ bool Parser::name(Token &id) {
  *      <expression> , <argument_list>
  *    | <expression>
  */
-bool Parser::argumentList() {
-    if (!expression()) {
+bool Parser::argumentList(Symbol &id) {
+    Symbol arg;
+    int argInd = 0;
+    if (!expression(arg)) {
+        if (argInd != id.params.size()) {
+            error("Too few arguments provided to \'" + id.id + "\'");
+        }
         return false;
     }
 
+    // Check number of params
+    if (argInd >= id.params.size()) {
+        error("Too many arguments provided to \'" + id.id + "\'");
+        return false;
+
+    // Check type match to param
+    } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
+        return false;
+    }
+    argInd++;
+
+
     // Optional
     while (isTokenType(T_COMMA)) {
-        if (!expression()) {
+        arg = Symbol();
+        if (!expression(arg)) {
             error("Invalid argument");
             return false;
         }
+
+        // Check number of params
+        if (argInd >= id.params.size()) {
+            error("Too many arguments provided to \'" + id.id + "\'");
+            return false;
+
+        // Check type match to param
+        } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
+            return false;
+        }
+        argInd++;
+    }
+
+    // Check number of params
+    if (argInd != id.params.size()) {
+        error("Too few arguments provided to \'" + id.id + "\'");
+        return false;
     }
     return true;
 }
 
 /* <number> ::= [0-9][0-9_]*[.[0-9_]*]
  */
-bool Parser::number() {
-    return isTokenType(T_INTEGER_VAL) || isTokenType(T_FLOAT_VAL);
+bool Parser::number(Symbol &num) {
+    // Check without consuming
+    if (token.type == T_INTEGER_VAL) {
+        num.type = TYPE_INT;
+        num.tokenType = T_INTEGER_VAL;
+        
+        // Consume token
+        return isTokenType(T_INTEGER_VAL);
+
+    //Check without consuming
+    } else if (token.type == T_FLOAT_VAL) {
+        num.type = TYPE_FLOAT;
+        num.tokenType = T_FLOAT_VAL;
+
+        // Consume token
+        return isTokenType(T_FLOAT_VAL);
+    } else {
+        return false;
+    }
 }
 
 /* <string> :: = "[^"]*"
  */
-bool Parser::string() {
+bool Parser::string(Symbol &str) {
+    // Check without consuming
+    if (token.type == T_STRING_VAL) {
+        str.id = token.val;
+        str.tokenType = token.type;
+        str.type = TYPE_STRING;
+    }
+    // Consume token
     return isTokenType(T_STRING_VAL);
 }
 
@@ -768,4 +998,185 @@ bool Parser::statementBlockHelper() {
         }
     }
     return !errorFlag;
+}
+
+
+/* Type checking for arithmetic operators + - * / 
+ */
+bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
+    if ((lhs.type != TYPE_INT && lhs.type != TYPE_FLOAT) ||
+        (rhs.type != TYPE_INT && rhs.type != TYPE_FLOAT)) {
+        error("Arithmetic only defined for int and float");
+        return false;
+    }
+    
+    if (lhs.type == TYPE_INT) {
+        if (rhs.type == TYPE_FLOAT) {
+            // Convert lhs to float
+            lhs.type = TYPE_FLOAT;
+        }
+        // Else both int, types match
+        
+    } else { // lhs is float
+        if (rhs.type == TYPE_INT) {
+            // Convert rhs to float
+            rhs.type = TYPE_FLOAT;
+        }
+        // Else both float, types match
+    }
+    return true;
+}
+
+/* Type checking for relational operators < <= > >= == !=
+ */
+bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
+    bool compatible = false;
+    // If int is present with float or bool, convert int to that type
+    // Otherwise types must match exactly
+    
+    if (lhs.type == TYPE_INT) {
+        if (rhs.type == TYPE_BOOL) {
+            compatible = true;
+            // Convert lhs to bool
+            lhs.type = TYPE_BOOL;
+
+        } else if (rhs.type == TYPE_FLOAT) {
+            compatible = true;
+            // Convert lhs to float
+            lhs.type = TYPE_FLOAT;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+        }
+
+    } else if (lhs.type == TYPE_FLOAT) {
+        if (rhs.type == TYPE_FLOAT) {
+            compatible = true;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+            // Convert rhs to float
+            rhs.type = TYPE_FLOAT;
+        }
+
+    } else if (lhs.type == TYPE_BOOL) {
+        if (rhs.type == TYPE_BOOL) {
+            compatible = true;
+
+        } else if (rhs.type == TYPE_INT) {
+            compatible = true;
+            // Convert rhs to bool
+            rhs.type = TYPE_BOOL;
+        }
+
+    } else if (lhs.type == TYPE_STRING) {
+        // Strings only valid for == !=
+        if (rhs.type == TYPE_STRING && 
+            (op.type == T_EQUAL || op.type == T_NOT_EQUAL)) {
+            compatible = true;
+        }
+    }
+
+    if (!compatible) {
+        error("Incompatible relation operands");
+    }
+    return compatible;
+}
+
+/* Type checking for expression operators & |
+ */
+bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
+    bool compatible = false;
+    
+    if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
+        compatible = true;
+    } else if (lhs.type == TYPE_INT && rhs.type == TYPE_INT) {
+        compatible = true;
+    }
+
+    if (!compatible) {
+        error("Expression ops only defined for bool and int");
+    }
+    return compatible;
+}
+
+
+/* Type checking for assignment operator =
+ * and matching params to arguments
+ */
+bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
+    bool compatible = false;
+    // If types are compatible, convert exp to type of dest
+    // int <-> bool
+    // int <-> float
+    // Otherwise types must match exactly
+    
+    if (dest.type == exp.type) {
+        compatible = true;
+    } else if (dest.type == TYPE_INT) {
+        if (exp.type == TYPE_BOOL) {
+            compatible = true;
+            // Convert exp to int
+            exp.type = TYPE_INT;
+
+        } else if (exp.type == TYPE_FLOAT) {
+            compatible = true;
+            // Convert exp to int
+            exp.type = TYPE_INT;
+        }
+    } else if (dest.type == TYPE_FLOAT) {
+        if (exp.type == TYPE_INT) {
+            compatible = true;
+            // Convert exp to float
+            exp.type = TYPE_FLOAT;
+        }
+    } else if (dest.type == TYPE_BOOL) {
+        if (exp.type == TYPE_INT) {
+            compatible = true;
+            // Convert exp to bool
+            exp.type = TYPE_BOOL;
+        }
+    }
+
+    if (!compatible) {
+        error("Incompatible types " + getTypeName(dest.type) + " and " + getTypeName(exp.type));
+    }
+
+    /* Check valid matching of isArr isIndexed
+     * Valid:
+     * var = var
+     * arr = arr
+     * arr[i] = arr[i]
+     * arr[i] = var
+     * var = arr[i]
+     */
+    if (dest.isArr || exp.isArr) {
+        if (dest.isArr && exp.isArr) {
+            // Both arrays
+
+            if (dest.isIndexed != exp.isIndexed) {
+                error("Incompatible index match of arrays");
+                compatible = false;
+            } else if (!dest.isIndexed) {
+                // Both are unindexed. Array lengths must match
+                if (dest.arrSize != exp.arrSize) {
+                    error("Array lengths must match");
+                    compatible = false;
+                }
+            }
+            // Else both are indexed
+
+        } else {
+            // One side is array
+            // Array must be indexed
+            if ((dest.isArr && !dest.isIndexed) ||
+                (exp.isArr && !exp.isIndexed)) {
+                error("Array is not indexed");
+                compatible = false;
+            }
+        }
+    }
+    // Else both are non-array
+
+    return compatible;
 }

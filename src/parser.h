@@ -25,41 +25,49 @@ class Parser {
         bool programBody();
         bool declaration();
 
-        bool procedureDeclaration(bool &isGlobal);
-        bool procedureHeader(bool &isGlobal);
-        bool parameterList();
-        bool parameter();
+        bool procedureDeclaration(Symbol &decl);
+        bool procedureHeader(Symbol &decl);
+        bool parameterList(Symbol &decl);
+        bool parameter(Symbol &param);
         bool procedureBody();
 
-        bool variableDeclaration(bool &isGlobal);
-        bool typeMark();
-        bool bound();
+        bool variableDeclaration(Symbol &decl);
+        bool typeMark(Symbol &id);
+        bool bound(Symbol &id);
 
         bool statement();
-        bool procedureCall(Token &id);
+        bool procedureCall(Symbol &id);
         bool assignmentStatement();
-        bool destination(Token &id);
+        bool destination(Symbol &id);
         bool ifStatement();
         bool loopStatement();
         bool returnStatement();
 
-        bool identifier(Token &id);
-        bool expression();
-        bool expression_p();
-        bool arithOp();
-        bool arithOp_p();
-        bool relation();
-        bool relation_p();
-        bool term();
-        bool term_p();
-        bool factor();
-        bool procCallOrName(Token &id);
-        bool name(Token &id);
-        bool argumentList();
-        bool number();
-        bool string();
+        bool identifier(Symbol &id);
+
+        bool expression(Symbol &exp);
+        bool expression_p(Symbol &exp);
+        bool arithOp(Symbol &arOp);
+        bool arithOp_p(Symbol &arOp);
+        bool relation(Symbol &rel);
+        bool relation_p(Symbol &rel);
+        bool term(Symbol &trm);
+        bool term_p(Symbol &trm);
+        bool factor(Symbol &fac);
+
+        bool procCallOrName(Symbol &id);
+        bool name(Symbol &id);
+        bool arrayIndexHelper(Symbol &id);
+        bool argumentList(Symbol &id);
+        bool number(Symbol &num);
+        bool string(Symbol &str);
 
         bool declarationBlockHelper();
         bool statementBlockHelper();
+
+        bool arithmeticTypeCheck(Symbol &lhs, Symbol &rhs);
+        bool relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op);
+        bool expressionTypeCheck(Symbol &lhs, Symbol &rhs);
+        bool compatibleTypeCheck(Symbol &dest, Symbol &exp);
 };
 #endif
