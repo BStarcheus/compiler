@@ -147,6 +147,10 @@ bool Parser::procedureDeclaration(Symbol &decl) {
     // Set inside function, so recursive calls possible
     scoper->setSymbol(decl.id, decl, decl.isGlobal);
 
+    // Set inside function so proc symbol can be easily found
+    // for return type checking
+    scoper->setCurrentProcedure(decl);
+
 
     if (!procedureBody()) {
         return false;
@@ -556,6 +560,16 @@ bool Parser::returnStatement() {
     if (!expression(exp)) {
         return false;
     }
+
+    // Type check match to procedure return type
+    Symbol proc = scoper->getCurrentProcedure();
+    if (proc.type == TYPE_UNK) {
+        error("Return statements must be within a procedure");
+        return false;
+    } else if (!compatibleTypeCheck(proc, exp)) {
+        return false;
+    }
+
     return true;
 }
 
