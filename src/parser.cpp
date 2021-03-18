@@ -391,7 +391,7 @@ bool Parser::assignmentStatement() {
     }
 
     // Type check
-    if (!assignmentTypeCheck(dest, exp)) {
+    if (!compatibleTypeCheck(dest, exp)) {
         return false;
     }
 
@@ -899,8 +899,7 @@ bool Parser::argumentList(Symbol &id) {
         return false;
 
     // Check type match to param
-    } else if (arg.type != id.params[argInd].type) {
-        error(getTypeName(arg.type) + " argument provided to parameter \'" + id.params[argInd].id + "\' of type " + getTypeName(id.params[argInd].type));
+    } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
         return false;
     }
     argInd++;
@@ -920,8 +919,7 @@ bool Parser::argumentList(Symbol &id) {
             return false;
 
         // Check type match to param
-        } else if (arg.type != id.params[argInd].type) {
-            error(getTypeName(arg.type) + " argument provided to parameter \'" + id.params[argInd].id + "\' of type " + getTypeName(id.params[argInd].type));
+        } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
             return false;
         }
         argInd++;
@@ -1100,8 +1098,9 @@ bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
 
 
 /* Type checking for assignment operator =
+ * and matching params to arguments
  */
-bool Parser::assignmentTypeCheck(Symbol &dest, Symbol &exp) {
+bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
     bool compatible = false;
     // If types are compatible, convert exp to type of dest
     // int <-> bool
@@ -1150,7 +1149,7 @@ bool Parser::assignmentTypeCheck(Symbol &dest, Symbol &exp) {
     }
 
     if (!compatible) {
-        error("Incompatible types for assignment");
+        error("Incompatible types " + getTypeName(dest.type) + " and " + getTypeName(exp.type));
     }
     return compatible;
 }
