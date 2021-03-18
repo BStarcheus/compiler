@@ -17,6 +17,10 @@ enum Type {
     TYPE_UNK
 };
 
+// Get type name from type number
+std::string getTypeName(Type t);
+
+
 /* Symbols are either reserved words or identifiers.
  * Identifiers are either variables or procedures.
  * 

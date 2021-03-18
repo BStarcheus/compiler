@@ -29,3 +29,14 @@ Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p)
     isArr = false;
     arrSize = 0;
 }
+
+// Get type name from type number
+std::string getTypeName(Type t) {
+    switch (t) {
+        case TYPE_INT: return "integer";
+        case TYPE_FLOAT: return "float";
+        case TYPE_STRING: return "string";
+        case TYPE_BOOL: return "bool";
+        default: return "unknown";
+    }
+}

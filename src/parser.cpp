@@ -196,6 +196,9 @@ bool Parser::procedureHeader(Symbol &decl) {
 
     // Optional
     parameterList(decl);
+    if (errorFlag) {
+        return false;
+    }
     
     if (!isTokenType(T_RPAREN)) {
         error("Missing \')\' in procedure header");
@@ -808,7 +811,10 @@ bool Parser::procCallOrName(Symbol &id) {
         // Procedure call
 
         // Optional
-        argumentList();
+        argumentList(id);
+        if (errorFlag) {
+            return false;
+        }
 
         if (!isTokenType(T_RPAREN)) {
             error("Missing \')\' in procedure call");
@@ -877,23 +883,54 @@ bool Parser::nameHelper(Symbol &id) {
  *      <expression> , <argument_list>
  *    | <expression>
  */
-bool Parser::argumentList() {
-    Symbol exp;
-    if (!expression(exp)) {
+bool Parser::argumentList(Symbol &id) {
+    Symbol arg;
+    int argInd = 0;
+    if (!expression(arg)) {
+        if (argInd != id.params.size()) {
+            error("Too few arguments provided to \'" + id.id + "\'");
+        }
         return false;
     }
 
-    // TODO Check type match to param
+    // Check number of params
+    if (argInd >= id.params.size()) {
+        error("Too many arguments provided to \'" + id.id + "\'");
+        return false;
+
+    // Check type match to param
+    } else if (arg.type != id.params[argInd].type) {
+        error(getTypeName(arg.type) + " argument provided to parameter \'" + id.params[argInd].id + "\' of type " + getTypeName(id.params[argInd].type));
+        return false;
+    }
+    argInd++;
+
 
     // Optional
     while (isTokenType(T_COMMA)) {
-        exp = Symbol();
-        if (!expression(exp)) {
+        arg = Symbol();
+        if (!expression(arg)) {
             error("Invalid argument");
             return false;
         }
 
-        // TODO Check type match to param
+        // Check number of params
+        if (argInd >= id.params.size()) {
+            error("Too many arguments provided to \'" + id.id + "\'");
+            return false;
+
+        // Check type match to param
+        } else if (arg.type != id.params[argInd].type) {
+            error(getTypeName(arg.type) + " argument provided to parameter \'" + id.params[argInd].id + "\' of type " + getTypeName(id.params[argInd].type));
+            return false;
+        }
+        argInd++;
+    }
+
+    // Check number of params
+    if (argInd != id.params.size()) {
+        error("Too few arguments provided to \'" + id.id + "\'");
+        return false;
     }
     return true;
 }
