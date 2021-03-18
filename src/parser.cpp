@@ -303,12 +303,13 @@ bool Parser::variableDeclaration(Symbol &decl) {
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        decl.isArr = true;
-
         if (!bound(decl)) {
             error("Invalid bound");
             return false;
         }
+
+        decl.isArr = true;
+
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in variable bound");
             return false;
@@ -862,11 +863,17 @@ bool Parser::arrayIndexHelper(Symbol &id) {
         }
 
         // Check valid access
-        if (exp.type != TYPE_INT) {
+        if (!id.isArr) {
+            error("\'" + id.id + "\' is not an array, and cannot be indexed");
+            return false;
+        } else if (exp.type != TYPE_INT) {
             error("Array index must be type integer");
             return false;
         }
         // TODO Codegen: check exp value < id.arrSize
+
+        // Identifier is indexed
+        id.isIndexed = true;
 
         if (!isTokenType(T_RBRACKET)) {
             error("Missing \']\' in name");
@@ -1104,7 +1111,9 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
     // int <-> float
     // Otherwise types must match exactly
     
-    if (dest.type == TYPE_INT) {
+    if (dest.type == exp.type) {
+        compatible = true;
+    } else if (dest.type == TYPE_INT) {
         if (exp.type == TYPE_BOOL) {
             compatible = true;
             // Convert exp to int
@@ -1114,39 +1123,60 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
             compatible = true;
             // Convert exp to int
             exp.type = TYPE_INT;
-
-        } else if (exp.type == TYPE_INT) {
-            compatible = true;
         }
-
     } else if (dest.type == TYPE_FLOAT) {
-        if (exp.type == TYPE_FLOAT) {
-            compatible = true;
-
-        } else if (exp.type == TYPE_INT) {
+        if (exp.type == TYPE_INT) {
             compatible = true;
             // Convert exp to float
             exp.type = TYPE_FLOAT;
         }
-
     } else if (dest.type == TYPE_BOOL) {
-        if (exp.type == TYPE_BOOL) {
-            compatible = true;
-
-        } else if (exp.type == TYPE_INT) {
+        if (exp.type == TYPE_INT) {
             compatible = true;
             // Convert exp to bool
             exp.type = TYPE_BOOL;
-        }
-
-    } else if (dest.type == TYPE_STRING) {
-        if (exp.type == TYPE_STRING) {
-            compatible = true;
         }
     }
 
     if (!compatible) {
         error("Incompatible types " + getTypeName(dest.type) + " and " + getTypeName(exp.type));
     }
+
+    /* Check valid matching of isArr isIndexed
+     * Valid:
+     * var = var
+     * arr = arr
+     * arr[i] = arr[i]
+     * arr[i] = var
+     * var = arr[i]
+     */
+    if (dest.isArr || exp.isArr) {
+        if (dest.isArr && exp.isArr) {
+            // Both arrays
+
+            if (dest.isIndexed != exp.isIndexed) {
+                error("Incompatible index match of arrays");
+                compatible = false;
+            } else if (!dest.isIndexed) {
+                // Both are unindexed. Array lengths must match
+                if (dest.arrSize != exp.arrSize) {
+                    error("Array lengths must match");
+                    compatible = false;
+                }
+            }
+            // Else both are indexed
+
+        } else {
+            // One side is array
+            // Array must be indexed
+            if ((dest.isArr && !dest.isIndexed) ||
+                (exp.isArr && !exp.isIndexed)) {
+                error("Array is not indexed");
+                compatible = false;
+            }
+        }
+    }
+    // Else both are non-array
+
     return compatible;
 }
