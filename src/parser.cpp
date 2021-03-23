@@ -2,11 +2,25 @@
 #include "token.h"
 #include <iostream>
 
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/TargetRegistry.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+
+
 Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
     scanner = scannerPtr;
     scoper = scoperPtr;
     debugFlag = dbg;
     errorFlag = false;
+
+    llvm_context = new llvm::LLVMContext();
+    llvm_module = new llvm::Module("llvm_module", *llvm_context);
+    llvm_builder = new llvm::IRBuilder<>(*llvm_context);
 }
 
 Parser::~Parser() {
@@ -19,6 +33,59 @@ bool Parser::parse() {
     // Get the first token
     token = scanner->scan();
     return program();
+}
+
+
+/* Output the LLVM Module to .s assembly file
+ */
+void Parser::outputAssembly() {
+    // Initialize the target registry etc.
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
+
+    auto targetTriple = llvm::sys::getDefaultTargetTriple();
+    llvm_module->setTargetTriple(targetTriple);
+
+    std::string err;
+    auto target = llvm::TargetRegistry::lookupTarget(targetTriple, err);
+
+    // If no target found
+    if (!target) {
+        llvm::errs() << err;
+        return;
+    }
+
+    std::string cpu = "generic";
+    std::string features = "";
+
+    llvm::TargetOptions opt;
+    auto rm = llvm::Optional<llvm::Reloc::Model>();
+    auto targetMachine = target->createTargetMachine(targetTriple, cpu, features, opt, rm);
+
+    llvm_module->setDataLayout(targetMachine->createDataLayout());
+
+    std::string filename = "out.s";
+    std::error_code errCode;
+    llvm::raw_fd_ostream dest(filename, errCode, llvm::sys::fs::OF_None);
+
+    if (errCode) {
+        llvm::errs() << "Could not open output file: " << errCode.message();
+        return;
+    }
+
+    llvm::legacy::PassManager pm;
+    auto fileType = llvm::CGFT_AssemblyFile;
+
+    if (targetMachine->addPassesToEmitFile(pm, dest, nullptr, fileType)) {
+        llvm::errs() << "TargetMachine cannot emit a file of this type.";
+        return;
+    }
+
+    pm.run(*llvm_module);
+    dest.flush();
 }
 
 

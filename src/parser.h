@@ -3,6 +3,10 @@
 
 #include "scanner.h"
 
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/IRBuilder.h"
+
 class Parser {
     public:
         Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg);
@@ -10,6 +14,7 @@ class Parser {
         bool debugFlag;
         bool errorFlag;
         bool parse();
+        void outputAssembly();
     private:
         Token token;
         Scanner* scanner;
@@ -69,5 +74,10 @@ class Parser {
         bool relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op);
         bool expressionTypeCheck(Symbol &lhs, Symbol &rhs);
         bool compatibleTypeCheck(Symbol &dest, Symbol &exp);
+
+        // LLVM
+        llvm::LLVMContext *llvm_context;
+        llvm::Module *llvm_module;
+        llvm::IRBuilder<> *llvm_builder;
 };
 #endif
