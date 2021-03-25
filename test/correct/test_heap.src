@@ -10,7 +10,7 @@ program test_program is
             tmp := print_string(level + 1);
         end if;
         x := putString(s);
-	return s;
+	return x;
     end procedure;
 begin
     tmp := print_string(2);
