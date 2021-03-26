@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
     } 
 
     bool success = parser.parse();
+    parser.outputAssembly();
 
     if (dbg) {
         std::cout << "Parse success: " << success << std::endl;
