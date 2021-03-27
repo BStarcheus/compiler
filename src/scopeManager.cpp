@@ -56,10 +56,10 @@ ScopeManager::ScopeManager(bool dbg) {
 }
 
 ScopeManager::~ScopeManager() {
-    if (global != local) {
-        delete global;
+    while (global != local) {
+        exitScope();
     }
-    delete local;
+    delete global;
 }
 
 // Enter a new local scope
