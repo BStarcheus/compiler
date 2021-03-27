@@ -100,7 +100,8 @@ void Parser::debug(std::string msg) {
     scanner->debug(msg);
 }
 
-/* 
+/* Check if the current token is of type t
+ * If it is, scan for the next token and store it
  */
 bool Parser::isTokenType(TokenType t) {
     if (token.type == t) {
