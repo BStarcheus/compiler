@@ -4,3 +4,4 @@ compiler.dSYM
 *.txt
 *.s
 *.o
+a.out
