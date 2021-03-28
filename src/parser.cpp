@@ -40,11 +40,11 @@ bool Parser::parse() {
 
 /* Output the LLVM Module to .s assembly file
  */
-void Parser::outputAssembly() {
+bool Parser::outputAssembly() {
     bool invalid = llvm::verifyModule(*llvm_module, &llvm::errs());
     if (invalid) {
         error("Errors found in Module");
-        return;
+        return false;
     }
 
     // Initialize the target registry etc.
@@ -63,7 +63,7 @@ void Parser::outputAssembly() {
     // If no target found
     if (!target) {
         llvm::errs() << err;
-        return;
+        return false;
     }
 
     std::string cpu = "generic";
@@ -81,7 +81,7 @@ void Parser::outputAssembly() {
 
     if (errCode) {
         llvm::errs() << "Could not open output file: " << errCode.message();
-        return;
+        return false;
     }
 
     llvm::legacy::PassManager pm;
@@ -89,11 +89,12 @@ void Parser::outputAssembly() {
 
     if (targetMachine->addPassesToEmitFile(pm, dest, nullptr, fileType)) {
         llvm::errs() << "TargetMachine cannot emit a file of this type.";
-        return;
+        return false;
     }
 
     pm.run(*llvm_module);
     dest.flush();
+    return true;
 }
 
 

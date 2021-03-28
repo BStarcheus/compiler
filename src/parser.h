@@ -14,7 +14,7 @@ class Parser {
         bool debugFlag;
         bool errorFlag;
         bool parse();
-        void outputAssembly();
+        bool outputAssembly();
     private:
         Token token;
         Scanner* scanner;
