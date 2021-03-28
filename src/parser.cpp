@@ -2,6 +2,7 @@
 #include "token.h"
 #include <iostream>
 
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
@@ -40,6 +41,12 @@ bool Parser::parse() {
 /* Output the LLVM Module to .s assembly file
  */
 void Parser::outputAssembly() {
+    bool invalid = llvm::verifyModule(*llvm_module, &llvm::errs());
+    if (invalid) {
+        error("Errors found in Module");
+        return;
+    }
+
     // Initialize the target registry etc.
     llvm::InitializeAllTargetInfos();
     llvm::InitializeAllTargets();
@@ -170,6 +177,18 @@ bool Parser::programBody() {
         error("Missing \'begin\' keyword in program body");
         return false;
     }
+
+    // Code gen: main function
+    std::vector<llvm::Type*> params;
+    llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
+    llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", *llvm_module);
+    func->setCallingConv(llvm::CallingConv::C);
+
+    // Code gen: Set main entrypoint
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
+    llvm_builder->SetInsertPoint(entry);
+
+
     if (!statementBlockHelper()) {
         return false;
     }
@@ -181,6 +200,13 @@ bool Parser::programBody() {
         error("Missing \'program\' keyword in program body");
         return false;
     }
+
+    // Code gen: end main function, return 0
+    llvm::Value *retVal = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+    llvm_builder->CreateRet(retVal);
+
     return true;
 }
 
@@ -1017,6 +1043,9 @@ bool Parser::number(Symbol &num) {
     if (token.type == T_INTEGER_VAL) {
         num.type = TYPE_INT;
         num.tokenType = T_INTEGER_VAL;
+        num.llvm_value = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, token.getIntVal(), true));
         
         // Consume token
         return isTokenType(T_INTEGER_VAL);
@@ -1025,6 +1054,9 @@ bool Parser::number(Symbol &num) {
     } else if (token.type == T_FLOAT_VAL) {
         num.type = TYPE_FLOAT;
         num.tokenType = T_FLOAT_VAL;
+        num.llvm_value = llvm::ConstantFP::get(
+            *llvm_context,
+            llvm::APFloat(token.getFloatVal()));
 
         // Consume token
         return isTokenType(T_FLOAT_VAL);
@@ -1041,6 +1073,7 @@ bool Parser::string(Symbol &str) {
         str.id = token.val;
         str.tokenType = token.type;
         str.type = TYPE_STRING;
+        str.llvm_value = llvm_builder->CreateGlobalString(token.val);
     }
     // Consume token
     return isTokenType(T_STRING_VAL);
