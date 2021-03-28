@@ -19,6 +19,7 @@ Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
     errorFlag = false;
 
     llvm_context = new llvm::LLVMContext();
+    llvm_builder = new llvm::IRBuilder<>(*llvm_context);
 }
 
 Parser::~Parser() {
@@ -147,7 +148,6 @@ bool Parser::programHeader() {
 
     // Create LLVM module with program name
     llvm_module = new llvm::Module(id.id, *llvm_context);
-    llvm_builder = new llvm::IRBuilder<>(*llvm_context);
 
     if (!isTokenType(T_IS)) {
         error("Missing \'is\' keyword in program header");
