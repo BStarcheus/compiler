@@ -743,6 +743,7 @@ bool Parser::arithOp(Symbol &arOp) {
  *    | null
  */
 bool Parser::arithOp_p(Symbol &arOp) {
+    Token op = token;
     if (isTokenType(T_PLUS) ||
         isTokenType(T_MINUS)) {
         Symbol rhs;
@@ -751,7 +752,7 @@ bool Parser::arithOp_p(Symbol &arOp) {
         }
 
         // Check/convert type for + -
-        if (!arithmeticTypeCheck(arOp, rhs)) {
+        if (!arithmeticTypeCheckCodeGen(arOp, rhs, op)) {
             return false;
         }
 
@@ -829,6 +830,7 @@ bool Parser::term(Symbol &trm) {
  *    | null
  */
 bool Parser::term_p(Symbol &trm) {
+    Token op = token;
     if (isTokenType(T_MULTIPLY) ||
         isTokenType(T_DIVIDE)) {
         Symbol rhs;
@@ -837,7 +839,7 @@ bool Parser::term_p(Symbol &trm) {
         }
 
         // Check/convert type for * /
-        if (!arithmeticTypeCheck(trm, rhs)) {
+        if (!arithmeticTypeCheckCodeGen(trm, rhs, op)) {
             return false;
         }
 
@@ -871,7 +873,7 @@ bool Parser::factor(Symbol &fac) {
 
     } else if (isTokenType(T_MINUS)) {
         if (name(fac) || number(fac)) {
-            // Codegen negative
+            // Code gen: negative
             if (fac.type == TYPE_INT) {
                 fac.llvm_value = llvm_builder->CreateNeg(fac.llvm_value);
             } else if (fac.type == TYPE_FLOAT) {
@@ -1008,7 +1010,7 @@ bool Parser::arrayIndexHelper(Symbol &id) {
             error("Array index must be type integer");
             return false;
         }
-        // TODO Codegen: check exp value < id.arrSize
+        // TODO Code gen: check exp value < id.arrSize
 
         // Identifier is indexed
         id.isIndexed = true;
@@ -1148,7 +1150,7 @@ bool Parser::statementBlockHelper() {
 
 /* Type checking for arithmetic operators + - * / 
  */
-bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
+bool Parser::arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     if ((lhs.type != TYPE_INT && lhs.type != TYPE_FLOAT) ||
         (rhs.type != TYPE_INT && rhs.type != TYPE_FLOAT)) {
         error("Arithmetic only defined for int and float");
@@ -1159,6 +1161,9 @@ bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
         if (rhs.type == TYPE_FLOAT) {
             // Convert lhs to float
             lhs.type = TYPE_FLOAT;
+            lhs.llvm_value = llvm_builder->CreateSIToFP(
+                lhs.llvm_value,
+                llvm_builder->getFloatTy());
         }
         // Else both int, types match
         
@@ -1166,8 +1171,46 @@ bool Parser::arithmeticTypeCheck(Symbol &lhs, Symbol &rhs) {
         if (rhs.type == TYPE_INT) {
             // Convert rhs to float
             rhs.type = TYPE_FLOAT;
+            rhs.llvm_value = llvm_builder->CreateSIToFP(
+                rhs.llvm_value,
+                llvm_builder->getFloatTy());
         }
         // Else both float, types match
+    }
+
+    // Code gen
+    switch (op.type) {
+        case T_PLUS:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFAdd(lhs.llvm_value, rhs.llvm_value);
+            } else {
+                lhs.llvm_value = llvm_builder->CreateAdd(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_MINUS:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFSub(lhs.llvm_value, rhs.llvm_value);
+            } else {
+                lhs.llvm_value = llvm_builder->CreateSub(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_MULTIPLY:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFMul(lhs.llvm_value, rhs.llvm_value);
+            } else {
+                lhs.llvm_value = llvm_builder->CreateMul(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_DIVIDE:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFDiv(lhs.llvm_value, rhs.llvm_value);
+            } else {
+                lhs.llvm_value = llvm_builder->CreateSDiv(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        default:
+            error("Invalid arithmetic operator");
+            return false;
     }
     return true;
 }
