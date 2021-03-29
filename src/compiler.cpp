@@ -30,17 +30,20 @@ int main(int argc, char* argv[]) {
         return 1;
     } 
 
-    bool parseSuccess = parser.parse();
+    bool success = parser.parse();
     
     if (dbg) {
-        std::cout << "Parse success: " << parseSuccess << std::endl;
+        std::cout << "Parse success: " << success << std::endl;
     }
 
-    bool codeGenSuccess = parser.outputAssembly();
+    if (success) {
+        // Only attempt if parse success
+        success = parser.outputAssembly();
 
-    if (dbg) {
-        std::cout << "Assembly code gen success: " << codeGenSuccess << std::endl;
+        if (dbg) {
+            std::cout << "Assembly code gen success: " << success << std::endl;
+        }
     }
 
-    return !(parseSuccess && codeGenSuccess);
+    return !success;
 }
