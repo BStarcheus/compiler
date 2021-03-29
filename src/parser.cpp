@@ -876,9 +876,13 @@ bool Parser::factor(Symbol &fac) {
     } else if (isTokenType(T_TRUE)) {
         fac.tokenType = T_TRUE;
         fac.type = TYPE_BOOL;
+        fac.llvm_value = llvm::ConstantInt::getTrue(*llvm_context);
+
     } else if (isTokenType(T_FALSE)) {
         fac.tokenType = T_FALSE;
         fac.type = TYPE_BOOL;
+        fac.llvm_value = llvm::ConstantInt::getFalse(*llvm_context);
+
     } else {
         return false;
     }
