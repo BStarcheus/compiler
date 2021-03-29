@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
@@ -92,8 +93,22 @@ bool Parser::outputAssembly() {
         return false;
     }
 
+    
+    // Emit IR for debugging
+    std::string filename2 = "out.ll";
+    std::error_code errCode2;
+    llvm::raw_fd_ostream dest2(filename2, errCode2, llvm::sys::fs::OF_None);
+    if (errCode2) {
+        llvm::errs() << "Could not open output file: " << errCode2.message();
+        return false;
+    }
+    pm.add(llvm::createPrintModulePass(dest2));
+
+    
     pm.run(*llvm_module);
     dest.flush();
+    dest2.flush();
+
     return true;
 }
 
