@@ -183,6 +183,8 @@ bool Parser::program() {
 /* <program_header> ::= program <identifier> is
  */
 bool Parser::programHeader() {
+    debugParseTrace("Program Header");
+
     if (!isTokenType(T_PROGRAM)) {
         return false;
     }
@@ -209,6 +211,8 @@ bool Parser::programHeader() {
  *      end program
  */
 bool Parser::programBody() {
+    debugParseTrace("Program Body");
+
     if (!declarationBlockHelper()) {
         return false;
     }
@@ -254,6 +258,8 @@ bool Parser::programBody() {
  *    | [ global ] <variable_declaration>
  */
 bool Parser::declaration() {
+    debugParseTrace("Declaration");
+
     Symbol decl;
     decl.isGlobal = isTokenType(T_GLOBAL);
 
@@ -271,6 +277,8 @@ bool Parser::declaration() {
 /* <procedure_declaration> ::= <procedure_header> <procedure_body>
  */
 bool Parser::procedureDeclaration(Symbol &decl) {
+    debugParseTrace("Procedure Declaration");
+
     if (!procedureHeader(decl)) {
         return false;
     }
@@ -313,6 +321,8 @@ bool Parser::procedureDeclaration(Symbol &decl) {
  *      procedure <identifier> : <type_mark> ( [<parameter_list>] )
  */
 bool Parser::procedureHeader(Symbol &decl) {
+    debugParseTrace("Procedure Header");
+
     if (!isTokenType(T_PROCEDURE)) {
         return false;
     }
@@ -354,6 +364,8 @@ bool Parser::procedureHeader(Symbol &decl) {
  *    | <parameter>
  */
 bool Parser::parameterList(Symbol &decl) {
+    debugParseTrace("Parameter List");
+
     Symbol param;
     if (!parameter(param)) {
         return false;
@@ -377,6 +389,7 @@ bool Parser::parameterList(Symbol &decl) {
 /* <parameter> ::= <variable_declaration>
  */
 bool Parser::parameter(Symbol &param) {
+    debugParseTrace("Parameter");
     return variableDeclaration(param);
 }
 
@@ -387,6 +400,8 @@ bool Parser::parameter(Symbol &param) {
  *      end procedure
  */
 bool Parser::procedureBody() {
+    debugParseTrace("Procedure Body");
+
     if (!declarationBlockHelper()) {
         return false;
     }
@@ -413,6 +428,8 @@ bool Parser::procedureBody() {
  *      variable <identifier> : <type_mark> [ [ <bound> ] ]
  */
 bool Parser::variableDeclaration(Symbol &decl) {
+    debugParseTrace("Variable Declaration");
+
     if (!isTokenType(T_VARIABLE)) {
         return false;
     }
@@ -465,6 +482,8 @@ bool Parser::variableDeclaration(Symbol &decl) {
  *      integer | float | string | bool
  */
 bool Parser::typeMark(Symbol &id) {
+    debugParseTrace("Type Mark");
+
     if (isTokenType(T_INTEGER)) {
         id.type = TYPE_INT;
     } else if (isTokenType(T_FLOAT)) {
@@ -482,6 +501,8 @@ bool Parser::typeMark(Symbol &id) {
 /* <bound> ::= <number>
  */
 bool Parser::bound(Symbol &id) {
+    debugParseTrace("Bound");
+
     Symbol num;
 
     // TODO: Change impl with LLVM
@@ -504,6 +525,8 @@ bool Parser::bound(Symbol &id) {
  *    | <return_statement>
  */
 bool Parser::statement() {
+    debugParseTrace("Statement");
+
     if (assignmentStatement()) {
 
     } else if (ifStatement()) {
@@ -521,6 +544,8 @@ bool Parser::statement() {
 /* <assignment_statement> ::= <destination> := <expression>
  */
 bool Parser::assignmentStatement() {
+    debugParseTrace("Assignment");
+
     Symbol dest, exp;
 
     if (!destination(dest)) {
@@ -544,6 +569,8 @@ bool Parser::assignmentStatement() {
 /* <destination> ::= <identifier> [ [ <expression> ] ]
  */
 bool Parser::destination(Symbol &id) {
+    debugParseTrace("Destination");
+
     if (!identifier(id)) {
         return false;
     }
@@ -574,6 +601,8 @@ bool Parser::destination(Symbol &id) {
  *      end if
  */
 bool Parser::ifStatement() {
+    debugParseTrace("If");
+
     if (!isTokenType(T_IF)) {
         return false;
     }
@@ -631,6 +660,8 @@ bool Parser::ifStatement() {
  *      end for
  */
 bool Parser::loopStatement() {
+    debugParseTrace("Loop");
+
     if (!isTokenType(T_FOR)) {
         return false;
     }
@@ -682,6 +713,8 @@ bool Parser::loopStatement() {
 /* <return_statement> ::= return <expression>
  */
 bool Parser::returnStatement() {
+    debugParseTrace("Return");
+
     if (!isTokenType(T_RETURN)) {
         return false;
     }
@@ -706,6 +739,8 @@ bool Parser::returnStatement() {
 /* <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
  */
 bool Parser::identifier(Symbol &id) {
+    debugParseTrace("Identifier");
+
     // Check without consuming
     if (token.type == T_IDENTIFIER) {
         id.id = token.val;
@@ -718,6 +753,8 @@ bool Parser::identifier(Symbol &id) {
 /* <expression> ::= [ not ] <arithOp> <expression_prime>
  */
 bool Parser::expression(Symbol &exp) {
+    debugParseTrace("Expression");
+
     // Optional
     bool nt = isTokenType(T_NOT);
 
@@ -746,6 +783,8 @@ bool Parser::expression(Symbol &exp) {
  *    | null
  */
 bool Parser::expression_p(Symbol &exp) {
+    debugParseTrace("Expression Prime");
+
     if (isTokenType(T_AND) ||
         isTokenType(T_OR)) {
         Symbol rhs;
@@ -766,6 +805,8 @@ bool Parser::expression_p(Symbol &exp) {
 /* <arithOp> ::= <relation> <arithOp_prime>
  */
 bool Parser::arithOp(Symbol &arOp) {
+    debugParseTrace("Arithmetic Op");
+
     if (!relation(arOp)) {
         return false;
     }
@@ -781,6 +822,8 @@ bool Parser::arithOp(Symbol &arOp) {
  *    | null
  */
 bool Parser::arithOp_p(Symbol &arOp) {
+    debugParseTrace("Arithmetic Op Prime");
+
     Token op = token;
     if (isTokenType(T_PLUS) ||
         isTokenType(T_MINUS)) {
@@ -804,6 +847,8 @@ bool Parser::arithOp_p(Symbol &arOp) {
 /* <relation> ::= <term> <relation_prime>
  */
 bool Parser::relation(Symbol &rel) {
+    debugParseTrace("Relation");
+
     if (!term(rel)) {
         return false;
     }
@@ -823,6 +868,8 @@ bool Parser::relation(Symbol &rel) {
  *    | null
  */
 bool Parser::relation_p(Symbol &rel) {
+    debugParseTrace("Relation Prime");
+
     Token op = token;
     if (isTokenType(T_LESS) ||
         isTokenType(T_GREATER_EQ) ||
@@ -853,6 +900,8 @@ bool Parser::relation_p(Symbol &rel) {
 /* <term> ::= <factor> <term_prime>
  */
 bool Parser::term(Symbol &trm) {
+    debugParseTrace("Term");
+
     if (!factor(trm)) {
         return false;
     }
@@ -868,6 +917,8 @@ bool Parser::term(Symbol &trm) {
  *    | null
  */
 bool Parser::term_p(Symbol &trm) {
+    debugParseTrace("Term Prime");
+
     Token op = token;
     if (isTokenType(T_MULTIPLY) ||
         isTokenType(T_DIVIDE)) {
@@ -898,6 +949,8 @@ bool Parser::term_p(Symbol &trm) {
  *    | false
  */
 bool Parser::factor(Symbol &fac) {
+    debugParseTrace("Factor");
+
     if (isTokenType(T_LPAREN)) {
         if (!expression(fac)) {
             return false;
@@ -951,6 +1004,8 @@ bool Parser::factor(Symbol &fac) {
  * <name> ::= <identifier> [ [ <expression> ] ]
  */
 bool Parser::procCallOrName(Symbol &id) {
+    debugParseTrace("Proc Call or Name");
+
     if (!identifier(id)) {
         return false;
     }
@@ -964,7 +1019,7 @@ bool Parser::procCallOrName(Symbol &id) {
     id = scoper->getSymbol(id.id);
 
     if (isTokenType(T_LPAREN)) {
-        // Procedure call
+        debugParseTrace("Procedure Call");
 
         // Confirm that it is a procedure
         if (id.symbolType != ST_PROCEDURE) {
@@ -983,7 +1038,7 @@ bool Parser::procCallOrName(Symbol &id) {
             return false;
         }
     } else {
-        // Name
+        debugParseTrace("Name");
 
         // Confirm that it is a name
         if (id.symbolType != ST_VARIABLE) {
@@ -1004,6 +1059,7 @@ bool Parser::procCallOrName(Symbol &id) {
 bool Parser::name(Symbol &id) {
     // This function is kept because in some cases we don't want
     // a procedure call to be valid, only a name
+    debugParseTrace("Name");
 
     if (!identifier(id)) {
         return false;
@@ -1033,6 +1089,8 @@ bool Parser::name(Symbol &id) {
  * [ [ <expression> ] ]
  */
 bool Parser::arrayIndexHelper(Symbol &id) {
+    debugParseTrace("Index");
+
     // Optional
     if (isTokenType(T_LBRACKET)) {
         Symbol exp;
@@ -1066,6 +1124,8 @@ bool Parser::arrayIndexHelper(Symbol &id) {
  *    | <expression>
  */
 bool Parser::argumentList(Symbol &id) {
+    debugParseTrace("Argument List");
+
     Symbol arg;
     int argInd = 0;
     if (!expression(arg)) {
@@ -1118,6 +1178,8 @@ bool Parser::argumentList(Symbol &id) {
 /* <number> ::= [0-9][0-9_]*[.[0-9_]*]
  */
 bool Parser::number(Symbol &num) {
+    debugParseTrace("Number");
+
     // Check without consuming
     if (token.type == T_INTEGER_VAL) {
         num.type = TYPE_INT;
@@ -1147,6 +1209,8 @@ bool Parser::number(Symbol &num) {
 /* <string> :: = "[^"]*"
  */
 bool Parser::string(Symbol &str) {
+    debugParseTrace("String");
+
     // Check without consuming
     if (token.type == T_STRING_VAL) {
         str.id = token.val;
