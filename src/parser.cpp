@@ -518,6 +518,12 @@ bool Parser::destination(Symbol &id) {
     // Get from local or global
     id = scoper->getSymbol(id.id);
 
+    // Confirm that it is a name
+    if (id.symbolType != ST_VARIABLE) {
+        error("\'" + id.id + "\' is not a valid destination");
+        return false;
+    }
+
     if (!arrayIndexHelper(id)) {
         return false;
     }
