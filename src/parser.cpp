@@ -861,12 +861,18 @@ bool Parser::factor(Symbol &fac) {
         // Both procedure call and name start with identifier
 
     } else if (isTokenType(T_MINUS)) {
-        if (name(fac)) {
-
-        } else if (number(fac)) {
-
+        if (name(fac) || number(fac)) {
+            // Codegen negative
+            if (fac.type == TYPE_INT) {
+                fac.llvm_value = llvm_builder->CreateNeg(fac.llvm_value);
+            } else if (fac.type == TYPE_FLOAT) {
+                fac.llvm_value = llvm_builder->CreateFNeg(fac.llvm_value);
+            } else {
+                error("Minus operator only valid on integers or floats");
+                return false;
+            }
         } else {
-            error("Invalid use of \'-\'");
+            error("Invalid use of minus operator");
             return false;
         }
     } else if (number(fac)) {
