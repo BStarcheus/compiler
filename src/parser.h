@@ -41,7 +41,6 @@ class Parser {
         bool bound(Symbol &id);
 
         bool statement();
-        bool procedureCall(Symbol &id);
         bool assignmentStatement();
         bool destination(Symbol &id);
         bool ifStatement();

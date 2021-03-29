@@ -917,6 +917,12 @@ bool Parser::procCallOrName(Symbol &id) {
     if (isTokenType(T_LPAREN)) {
         // Procedure call
 
+        // Confirm that it is a procedure
+        if (id.symbolType != ST_PROCEDURE) {
+            error("\'" + id.id + "\' is not a procedure, and cannot be called");
+            return false;
+        }
+
         // Optional
         argumentList(id);
         if (errorFlag) {
@@ -929,6 +935,13 @@ bool Parser::procCallOrName(Symbol &id) {
         }
     } else {
         // Name
+
+        // Confirm that it is a name
+        if (id.symbolType != ST_VARIABLE) {
+            error("\'" + id.id + "\' is not a variable");
+            return false;
+        }
+
         // Check if array access
         if (!arrayIndexHelper(id)) {
             return false;
@@ -954,6 +967,12 @@ bool Parser::name(Symbol &id) {
     }
     // Get from local or global
     id = scoper->getSymbol(id.id);
+
+    // Confirm that it is a name
+    if (id.symbolType != ST_VARIABLE) {
+        error("\'" + id.id + "\' is not a variable");
+        return false;
+    }
 
     if (!arrayIndexHelper(id)) {
         return false;
