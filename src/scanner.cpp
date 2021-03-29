@@ -123,8 +123,10 @@ void Scanner::warning(std::string msg) {
     std::cout << filename << ":" << std::left << std::setw(4);
     std::cout << lineNum << "  Warning: " << msg << std::endl;
 }
-void Scanner::debug(std::string msg) {
-    if (debugFlag) {
+void Scanner::debug(std::string msg, bool ovrd) {
+    // If the scanner is in debug mode, or if overridden by parser
+    // so that parser can use even when scanner is not in debug mode
+    if (debugFlag || ovrd) {
         std::cout << filename << ":" << std::left << std::setw(4);
         std::cout << lineNum << "  Debug: " << msg << std::endl;
     }

@@ -14,10 +14,11 @@
 #include "llvm/Target/TargetMachine.h"
 
 
-Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg) {
+Parser::Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbgParser, bool dbgCodegen) {
     scanner = scannerPtr;
     scoper = scoperPtr;
-    debugFlag = dbg;
+    debugFlag = dbgParser;
+    debugCodegenFlag = dbgCodegen;
     errorFlag = false;
 
     llvm_context = new llvm::LLVMContext();
@@ -35,7 +36,14 @@ Parser::~Parser() {
 bool Parser::parse() {
     // Get the first token
     token = scanner->scan();
-    return program();
+    bool success = program();
+
+    if (success) {
+        debug("Parse succeeded");
+    } else {
+        debug("Parse failed");
+    }
+    return success;
 }
 
 
@@ -93,22 +101,30 @@ bool Parser::outputAssembly() {
         return false;
     }
 
-    
-    // Emit IR for debugging
-    std::string filename2 = "out.ll";
-    std::error_code errCode2;
-    llvm::raw_fd_ostream dest2(filename2, errCode2, llvm::sys::fs::OF_None);
-    if (errCode2) {
-        llvm::errs() << "Could not open output file: " << errCode2.message();
-        return false;
+
+    if (debugCodegenFlag) {
+        // Emit IR for debugging
+        std::string filename2 = "out.ll";
+        std::error_code errCode2;
+        llvm::raw_fd_ostream dest2(filename2, errCode2, llvm::sys::fs::OF_None);
+
+        if (errCode2) {
+            llvm::errs() << "Could not open output file: " << errCode2.message();
+            return false;
+        }
+        pm.add(llvm::createPrintModulePass(dest2));
+
+        pm.run(*llvm_module);
+        dest.flush();
+        dest2.flush();
+
+    } else {
+        // Just emit the assembly
+        pm.run(*llvm_module);
+        dest.flush();
     }
-    pm.add(llvm::createPrintModulePass(dest2));
 
-    
-    pm.run(*llvm_module);
-    dest.flush();
-    dest2.flush();
-
+    debug("Assembly output succeeded");
     return true;
 }
 
@@ -121,7 +137,14 @@ void Parser::warning(std::string msg) {
     scanner->warning(msg);
 }
 void Parser::debug(std::string msg) {
-    scanner->debug(msg);
+    if (debugFlag) {
+        scanner->debug(msg, true);
+    }
+}
+void Parser::debugParseTrace(std::string msg) {
+    if (debugFlag) {
+        std::cout << "parse: " << msg << std::endl;
+    }
 }
 
 /* Check if the current token is of type t

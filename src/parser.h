@@ -9,9 +9,10 @@
 
 class Parser {
     public:
-        Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbg);
+        Parser(Scanner* scannerPtr, ScopeManager* scoperPtr, bool dbgParser, bool dbgCodegen);
         ~Parser();
         bool debugFlag;
+        bool debugCodegenFlag;
         bool errorFlag;
         bool parse();
         bool outputAssembly();
@@ -23,6 +24,7 @@ class Parser {
         void error(std::string msg);
         void warning(std::string msg);
         void debug(std::string msg);
+        void debugParseTrace(std::string msg);
 
         bool isTokenType(TokenType t);
         bool program();

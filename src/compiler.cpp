@@ -2,18 +2,50 @@
 #include <iostream>
 
 int main(int argc, char* argv[]) {
-    bool dbg = false;
+    bool dbgScanner = false;
+    bool dbgParser = false;
+    bool dbgSymtab = false;
+    bool dbgCodegen = false;
     std::string filename;
 
     if (argc < 2) {
         std::cout << "Error: Missing positional argument filename"\
         << std::endl;
         return 1;
-    } else if (argc <= 3) {
-        for (int i = 2; i < argc; i++) {
-            if (!strcmp(argv[i], "-d") || 
-                !strcmp(argv[i], "--debug")) {
-                dbg = true;
+
+    } else if (argc <= 6) {
+        for (int i = 1; i < argc; i++) {
+            if (!strcmp(argv[i], "-h") ||
+                !strcmp(argv[i], "--help")) {
+                std::cout << "Usage: compiler file [options]" << std::endl;
+                std::cout << "Options:" << std::endl;
+                std::cout << "  -h | --help        Show help" << std::endl;
+                std::cout << "  -d                 Show debug for all components" << std::endl;
+                std::cout << "  --debug-scanner    Show debug for scanner" << std::endl;
+                std::cout << "  --debug-parser     Show debug for parser" << std::endl;
+                std::cout << "  --debug-symtab     Show symbol table on each scope exit" << std::endl;
+                std::cout << "  --debug-codegen    Output LLVM IR in out.ll file" << std::endl;
+                return 0;
+
+            } else if (!strcmp(argv[i], "-d")) {
+                // Debug all components
+                dbgScanner = true;
+                dbgParser = true;
+                dbgSymtab = true;
+                dbgCodegen = true;
+
+            } else if (!strcmp(argv[i], "--debug-scanner")) {
+                dbgScanner = true;
+
+            } else if (!strcmp(argv[i], "--debug-parser")) {
+                dbgParser = true;
+
+            } else if (!strcmp(argv[i], "--debug-symtab")) {
+                dbgSymtab = true;
+
+            } else if (!strcmp(argv[i], "--debug-codegen")) {
+                dbgCodegen = true;
+
             }
         }
     } else {
@@ -21,29 +53,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    ScopeManager scoper(dbg);
-    Scanner scanner(&scoper, dbg);
-    Parser parser(&scanner, &scoper, dbg);
+    ScopeManager scoper(dbgSymtab);
+    Scanner scanner(&scoper, dbgScanner);
+    Parser parser(&scanner, &scoper, dbgParser, dbgCodegen);
 
     if (!scanner.openFile(argv[1])) {
         std::cout << "Error: File couldn't be opened" << std::endl;
         return 1;
-    } 
-
-    bool success = parser.parse();
-    
-    if (dbg) {
-        std::cout << "Parse success: " << success << std::endl;
     }
 
-    if (success) {
-        // Only attempt if parse success
-        success = parser.outputAssembly();
-
-        if (dbg) {
-            std::cout << "Assembly code gen success: " << success << std::endl;
-        }
-    }
+    bool success = parser.parse() && parser.outputAssembly();
 
     return !success;
 }

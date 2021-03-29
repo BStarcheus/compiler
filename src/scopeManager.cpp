@@ -1,4 +1,5 @@
 #include "scopeManager.h"
+#include <iostream>
 
 ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;
@@ -74,6 +75,7 @@ void ScopeManager::newScope() {
 void ScopeManager::exitScope() {
     if (debugFlag) {
         printScope(false);
+        std::cout << "Scope exited" << std::endl << std::endl;
     }
 
     if (local != nullptr && local != global) {
