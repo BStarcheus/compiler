@@ -554,6 +554,7 @@ bool Parser::ifStatement() {
 
     } else if (exp.type != TYPE_BOOL) {
         error("If statement expressions must evaluate to bool");
+        return false;
     }
 
     if (!isTokenType(T_RPAREN)) {
@@ -617,6 +618,7 @@ bool Parser::loopStatement() {
 
     } else if (exp.type != TYPE_BOOL) {
         error("Loop statement expressions must evaluate to bool");
+        return false;
     }
 
 
@@ -690,6 +692,7 @@ bool Parser::expression(Symbol &exp) {
     if (nt) {
         if (exp.type != TYPE_BOOL && exp.type != TYPE_INT) {
             error("\'not\' operator only defined for bool and int");
+            return false;
         }
     }
 
