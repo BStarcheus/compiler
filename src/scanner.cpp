@@ -115,6 +115,7 @@ bool Scanner::openFile(std::string filename) {
 }
 
 void Scanner::error(std::string msg) {
+    errorFlag = true;
     std::cout << filename << ":" << std::left << std::setw(4);
     std::cout << lineNum << "  Error: " << msg << std::endl;
 }
@@ -156,7 +157,6 @@ Token Scanner::scanToken() {
     Token token = Token();
 
     if (!file.is_open()) {
-        errorFlag = true;
         error("File is not open");
         token.type = T_UNK;
         return token;
@@ -181,11 +181,9 @@ Token Scanner::scanToken() {
                     lineNum++;
                 } else {
                     file.unget();
-                    errorFlag = true;
                     error("Invalid character");
                 }
             } else if (chClass == INVALID) {
-                errorFlag = true;
                 error("Invalid character");
             }
         } while (chClass == SPACE || chClass == INVALID);
@@ -318,7 +316,6 @@ Token Scanner::scanToken() {
                             lineNum++;
                         } else if (ch == EOF) {
                             token.type = T_UNK;
-                            errorFlag = true;
                             error("String value missing closing quote");
                             break;
                         }
