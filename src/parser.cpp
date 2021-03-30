@@ -883,7 +883,7 @@ bool Parser::relation_p(Symbol &rel) {
         }
 
         // Check/convert type for rel ops
-        if (!relationTypeCheck(rel, rhs, op)) {
+        if (!relationTypeCheckCodeGen(rel, rhs, op)) {
             return false;
         }
 
@@ -1319,21 +1319,31 @@ bool Parser::arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
 
 /* Type checking for relational operators < <= > >= == !=
  */
-bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
+bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     bool compatible = false;
     // If int is present with float or bool, convert int to that type
     // Otherwise types must match exactly
+
+    // 0 used for comparisons below
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
     
     if (lhs.type == TYPE_INT) {
         if (rhs.type == TYPE_BOOL) {
             compatible = true;
             // Convert lhs to bool
             lhs.type = TYPE_BOOL;
+            // All non-zero values are true
+            lhs.llvm_value = llvm_builder->CreateICmpNE(lhs.llvm_value, zeroVal);
 
         } else if (rhs.type == TYPE_FLOAT) {
             compatible = true;
             // Convert lhs to float
             lhs.type = TYPE_FLOAT;
+            lhs.llvm_value = llvm_builder->CreateSIToFP(
+                lhs.llvm_value,
+                llvm_builder->getFloatTy());
 
         } else if (rhs.type == TYPE_INT) {
             compatible = true;
@@ -1347,6 +1357,9 @@ bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
             compatible = true;
             // Convert rhs to float
             rhs.type = TYPE_FLOAT;
+            rhs.llvm_value = llvm_builder->CreateSIToFP(
+                rhs.llvm_value,
+                llvm_builder->getFloatTy());
         }
 
     } else if (lhs.type == TYPE_BOOL) {
@@ -1357,6 +1370,8 @@ bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
             compatible = true;
             // Convert rhs to bool
             rhs.type = TYPE_BOOL;
+            // All non-zero values are true
+            rhs.llvm_value = llvm_builder->CreateICmpNE(rhs.llvm_value, zeroVal);
         }
 
     } else if (lhs.type == TYPE_STRING) {
@@ -1369,6 +1384,73 @@ bool Parser::relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op) {
 
     if (!compatible) {
         error("Incompatible relation operands");
+        return false;
+    }
+
+
+    // Code gen
+    switch (op.type) {
+        case T_LESS:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpOLT(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_BOOL) {
+                lhs.llvm_value = llvm_builder->CreateICmpULT(lhs.llvm_value, rhs.llvm_value);
+            } else { // Int
+                lhs.llvm_value = llvm_builder->CreateICmpSLT(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_LESS_EQ:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpOLE(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_BOOL) {
+                lhs.llvm_value = llvm_builder->CreateICmpULE(lhs.llvm_value, rhs.llvm_value);
+            } else { // Int
+                lhs.llvm_value = llvm_builder->CreateICmpSLE(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_GREATER:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpOGT(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_BOOL) {
+                lhs.llvm_value = llvm_builder->CreateICmpUGT(lhs.llvm_value, rhs.llvm_value);
+            } else { // Int
+                lhs.llvm_value = llvm_builder->CreateICmpSGT(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_GREATER_EQ:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpOGE(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_BOOL) {
+                lhs.llvm_value = llvm_builder->CreateICmpUGE(lhs.llvm_value, rhs.llvm_value);
+            } else { // Int
+                lhs.llvm_value = llvm_builder->CreateICmpSGE(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_EQUAL:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpOEQ(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_STRING) {
+                
+
+
+            } else { // Int or Bool
+                lhs.llvm_value = llvm_builder->CreateICmpEQ(lhs.llvm_value, rhs.llvm_value);
+            }
+            break;
+        case T_NOT_EQUAL:
+            if (lhs.type == TYPE_FLOAT) {
+                lhs.llvm_value = llvm_builder->CreateFCmpONE(lhs.llvm_value, rhs.llvm_value);
+            } else if (lhs.type == TYPE_STRING) {
+                
+
+                
+            } else { // Int or Bool
+                lhs.llvm_value = llvm_builder->CreateICmpNE(lhs.llvm_value, rhs.llvm_value);
+            }
+            break; 
+        default:
+            error("Invalid relational operator");
+            return false;
     }
     return compatible;
 }

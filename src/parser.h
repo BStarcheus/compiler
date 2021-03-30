@@ -72,7 +72,7 @@ class Parser {
         bool statementBlockHelper();
 
         bool arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
-        bool relationTypeCheck(Symbol &lhs, Symbol &rhs, Token &op);
+        bool relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
         bool expressionTypeCheck(Symbol &lhs, Symbol &rhs);
         bool compatibleTypeCheck(Symbol &dest, Symbol &exp);
 
