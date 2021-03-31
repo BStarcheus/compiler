@@ -762,10 +762,12 @@ bool Parser::expression(Symbol &exp) {
         return false;
     }
 
-    // Type check for not op
-    // Only valid for bool and int
+    // Type check & code gen for not op
     if (nt) {
-        if (exp.type != TYPE_BOOL && exp.type != TYPE_INT) {
+        if (exp.type == TYPE_BOOL || 
+            exp.type == TYPE_INT) {
+            exp.llvm_value = llvm_builder->CreateNot(exp.llvm_value);
+        } else {
             error("\'not\' operator only defined for bool and int");
             return false;
         }
@@ -785,6 +787,7 @@ bool Parser::expression(Symbol &exp) {
 bool Parser::expression_p(Symbol &exp) {
     debugParseTrace("Expression Prime");
 
+    Token op = token;
     if (isTokenType(T_AND) ||
         isTokenType(T_OR)) {
         Symbol rhs;
@@ -793,7 +796,7 @@ bool Parser::expression_p(Symbol &exp) {
         }
 
         // Check/convert type for & |
-        expressionTypeCheck(exp, rhs);
+        expressionTypeCheckCodeGen(exp, rhs, op);
 
         if (!expression_p(exp)) {
             return false;
@@ -1457,7 +1460,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
 
 /* Type checking for expression operators & |
  */
-bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
+bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     bool compatible = false;
     
     if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
@@ -1468,6 +1471,21 @@ bool Parser::expressionTypeCheck(Symbol &lhs, Symbol &rhs) {
 
     if (!compatible) {
         error("Expression ops only defined for bool and int");
+        return false;
+    }
+
+
+    // Code gen
+    switch (op.type) {
+        case T_AND:
+            lhs.llvm_value = llvm_builder->CreateAnd(lhs.llvm_value, rhs.llvm_value);
+            break;
+        case T_OR:
+            lhs.llvm_value = llvm_builder->CreateOr(lhs.llvm_value, rhs.llvm_value);
+            break;
+        default:
+            error("Invalid expression operator");
+            return false;
     }
     return compatible;
 }
