@@ -177,9 +177,8 @@ bool Parser::program() {
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", *llvm_module);
     func->setCallingConv(llvm::CallingConv::C);
 
-    // Code gen: Set main entrypoint
-    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
-    llvm_builder->SetInsertPoint(entry);
+    // By defining up here we guarantee this is the first "main" function declared, so no suffix in LLVM
+    // which makes it the program entrypoint
 
     // Set global scope's procedure as main for easy access to LLVM
     Symbol s("main", T_IDENTIFIER, ST_PROCEDURE, TYPE_INT);
@@ -241,6 +240,17 @@ bool Parser::programBody() {
         error("Missing \'begin\' keyword in program body");
         return false;
     }
+
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    // Code gen: Set main entrypoint
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
+    llvm_builder->SetInsertPoint(entry);
+
+    // TODO Allocate for declared variables
+
+    
     if (!statementBlockHelper()) {
         return false;
     }
@@ -309,11 +319,6 @@ bool Parser::procedureDeclaration(Symbol &decl) {
     llvm::FunctionType *ft = llvm::FunctionType::get(getLLVMType(decl.type), params, false);
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, decl.id, *llvm_module);
     func->setCallingConv(llvm::CallingConv::C);
-
-    // Code gen: Set entrypoint
-    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
-    llvm_builder->SetInsertPoint(entry);
-
     decl.llvm_function = func;
 
 
@@ -340,11 +345,6 @@ bool Parser::procedureDeclaration(Symbol &decl) {
         // Set in local scope outside the function
         scoper->setSymbol(decl.id, decl, decl.isGlobal);
     }
-
-    // Set the insert point to the previous scope
-    Symbol prevFunc = scoper->getCurrentProcedure();
-    llvm_builder->SetInsertPoint(&prevFunc.llvm_function->back());
-
     return true;
 }
 
@@ -440,6 +440,17 @@ bool Parser::procedureBody() {
         error("Missing \'begin\' keyword in procedure body");
         return false;
     }
+
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    // Code gen: Set entrypoint
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
+    llvm_builder->SetInsertPoint(entry);
+
+    // TODO Allocate for params and declared variables
+
+
     if (!statementBlockHelper()) {
         return false;
     }
