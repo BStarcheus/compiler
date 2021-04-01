@@ -252,15 +252,24 @@ bool Parser::programBody() {
          it != scoper->getScopeEnd();
          ++it) {
 
-        if (it->second.symbolType == ST_VARIABLE) {
-            llvm::Value *addr = llvm_builder->CreateAlloca(
-                getLLVMType(it->second.type), 
-                nullptr,
-                it->second.id);
-            it->second.llvm_address = addr;
+        if (it->second.symbolType != ST_VARIABLE) { continue; }
 
-            // TODO Arrays
-        }
+        llvm::Type *ty = getLLVMType(it->second.type);
+
+        // Outer scope == Global
+        // Default initialized value
+        llvm::Constant *initValue = llvm::Constant::getNullValue(ty);
+        llvm::Value *addr = new llvm::GlobalVariable(
+            *llvm_module,
+            ty,
+            false,
+            llvm::GlobalValue::CommonLinkage,
+            initValue,
+            it->second.id);
+
+        // TODO Arrays
+
+        it->second.llvm_address = addr;
     }
 
     
@@ -470,15 +479,17 @@ bool Parser::procedureBody() {
          it != scoper->getScopeEnd();
          ++it) {
 
-        if (it->second.symbolType == ST_VARIABLE) {
-            llvm::Value *addr = llvm_builder->CreateAlloca(
-                getLLVMType(it->second.type), 
-                nullptr,
-                it->second.id);
-            it->second.llvm_address = addr;
+        if (it->second.symbolType != ST_VARIABLE) { continue; }
 
-            // TODO Arrays
-        }
+        llvm::Type *ty = getLLVMType(it->second.type);
+        llvm::Value *addr = llvm_builder->CreateAlloca(
+            ty, 
+            nullptr,
+            it->second.id);
+
+        // TODO Arrays
+
+        it->second.llvm_address = addr;
     }
 
 

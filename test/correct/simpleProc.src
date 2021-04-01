@@ -6,6 +6,7 @@ variable b : bool;
 
 procedure test : integer()
     variable x : integer;
+    global variable y : float;
     begin
     x := 1;
     if(true) then x := 1 + 1;
