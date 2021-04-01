@@ -126,6 +126,24 @@ bool ScopeManager::hasSymbol(std::string s, bool g) {
     }
 }
 
+// Get the begin iterator of the symbol table
+SymbolTable::iterator ScopeManager::getScopeBegin(bool g) {
+    if (g) {
+        return global->begin();
+    } else {
+        return local->begin();
+    }
+}
+
+// Get the end iterator of the symbol table
+SymbolTable::iterator ScopeManager::getScopeEnd(bool g) {
+    if (g) {
+        return global->end();
+    } else {
+        return local->end();
+    }
+}
+
 // Set the procedure symbol in the local scope for easy access
 void ScopeManager::setCurrentProcedure(Symbol proc) {
     local->setSymbol(_CUR_PROC, proc);

@@ -14,6 +14,8 @@ class ScopeManager {
         Symbol getSymbol(std::string s, bool g);
         bool hasSymbol(std::string s);
         bool hasSymbol(std::string s, bool g);
+        SymbolTable::iterator getScopeBegin(bool g = false);
+        SymbolTable::iterator getScopeEnd(bool g = false);
 
         void setCurrentProcedure(Symbol proc);
         Symbol getCurrentProcedure();

@@ -247,7 +247,21 @@ bool Parser::programBody() {
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
     llvm_builder->SetInsertPoint(entry);
 
-    // TODO Code gen: Allocate declared variables
+    // Code gen: Allocate declared variables
+    for (SymbolTable::iterator it = scoper->getScopeBegin();
+         it != scoper->getScopeEnd();
+         ++it) {
+
+        if (it->second.symbolType == ST_VARIABLE) {
+            llvm::Value *addr = llvm_builder->CreateAlloca(
+                getLLVMType(it->second.type), 
+                nullptr,
+                it->second.id);
+            it->second.llvm_address = addr;
+
+            // TODO Arrays
+        }
+    }
 
     
     if (!statementBlockHelper()) {
@@ -451,7 +465,21 @@ bool Parser::procedureBody() {
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
     llvm_builder->SetInsertPoint(entry);
 
-    // TODO Allocate for params and declared variables
+    // Code gen: Allocate params and declared variables
+    for (SymbolTable::iterator it = scoper->getScopeBegin();
+         it != scoper->getScopeEnd();
+         ++it) {
+
+        if (it->second.symbolType == ST_VARIABLE) {
+            llvm::Value *addr = llvm_builder->CreateAlloca(
+                getLLVMType(it->second.type), 
+                nullptr,
+                it->second.id);
+            it->second.llvm_address = addr;
+
+            // TODO Arrays
+        }
+    }
 
 
     if (!statementBlockHelper()) {

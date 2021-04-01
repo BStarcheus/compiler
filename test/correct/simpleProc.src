@@ -1,6 +1,8 @@
 Program MyTestProgram is
 
 variable i : integer;
+variable f : float;
+variable b : bool;
 
 procedure test : integer()
     variable x : integer;

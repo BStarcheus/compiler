@@ -74,5 +74,6 @@ struct Symbol {
     // LLVM values
     llvm::Value *llvm_value;
     llvm::Function *llvm_function;
+    llvm::Value *llvm_address;
 };
 #endif
