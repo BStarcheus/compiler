@@ -1,0 +1,24 @@
+Program MyTestProgram is
+
+variable i : integer;
+
+procedure test : integer()
+    variable x : integer;
+    begin
+    x := 1;
+    if(true) then x := 1 + 1;
+    else x := 1 + 5;
+    end if;
+    return x;
+end procedure;
+
+begin
+
+i := 100;
+
+if(101 > 100) then
+	i := 1110;
+end if;
+i:= 3+2;
+
+end program.

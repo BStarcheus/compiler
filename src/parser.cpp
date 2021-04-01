@@ -53,6 +53,9 @@ bool Parser::outputAssembly() {
     bool invalid = llvm::verifyModule(*llvm_module, &llvm::errs());
     if (invalid) {
         error("Errors found in Module");
+        if (debugCodegenFlag) {
+            llvm_module->print(llvm::outs(), nullptr);
+        }
         return false;
     }
 
@@ -166,6 +169,24 @@ bool Parser::program() {
     if (!programHeader()) {
         return false;
     }
+
+
+    // Code gen: main function
+    std::vector<llvm::Type*> params;
+    llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
+    llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", *llvm_module);
+    func->setCallingConv(llvm::CallingConv::C);
+
+    // Code gen: Set main entrypoint
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
+    llvm_builder->SetInsertPoint(entry);
+
+    // Set global scope's procedure as main for easy access to LLVM
+    Symbol s("main", T_IDENTIFIER, ST_PROCEDURE, TYPE_INT);
+    s.llvm_function = func;
+    scoper->setCurrentProcedure(s);
+
+
     if (!programBody()) {
         return false;
     }
@@ -220,18 +241,6 @@ bool Parser::programBody() {
         error("Missing \'begin\' keyword in program body");
         return false;
     }
-
-    // Code gen: main function
-    std::vector<llvm::Type*> params;
-    llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
-    llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", *llvm_module);
-    func->setCallingConv(llvm::CallingConv::C);
-
-    // Code gen: Set main entrypoint
-    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
-    llvm_builder->SetInsertPoint(entry);
-
-
     if (!statementBlockHelper()) {
         return false;
     }
@@ -246,8 +255,8 @@ bool Parser::programBody() {
 
     // Code gen: end main function, return 0
     llvm::Value *retVal = llvm::ConstantInt::get(
-            *llvm_context,
-            llvm::APInt(32, 0, true));
+        *llvm_context,
+        llvm::APInt(32, 0, true));
     llvm_builder->CreateRet(retVal);
 
     return true;
@@ -290,6 +299,21 @@ bool Parser::procedureDeclaration(Symbol &decl) {
         error("Procedure name \'" + decl.id + "\' already used in this scope");
         return false;
     }
+
+
+    // Code gen: function
+    std::vector<llvm::Type*> params;
+    llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
+    llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, decl.id, *llvm_module);
+    func->setCallingConv(llvm::CallingConv::C);
+
+    // Code gen: Set entrypoint
+    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
+    llvm_builder->SetInsertPoint(entry);
+
+    decl.llvm_function = func;
+
+
     // Set inside function, so recursive calls possible
     scoper->setSymbol(decl.id, decl, decl.isGlobal);
 
@@ -313,6 +337,10 @@ bool Parser::procedureDeclaration(Symbol &decl) {
         // Set in local scope outside the function
         scoper->setSymbol(decl.id, decl, decl.isGlobal);
     }
+
+    // Set the insert point to the previous scope
+    Symbol prevFunc = scoper->getCurrentProcedure();
+    llvm_builder->SetInsertPoint(&prevFunc.llvm_function->back());
 
     return true;
 }
@@ -420,6 +448,13 @@ bool Parser::procedureBody() {
         error("Missing \'procedure\' keyword in procedure body");
         return false;
     }
+
+    // Code gen: end function, return 0
+    llvm::Value *retVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
+    llvm_builder->CreateRet(retVal);
+
     return true;
 }
 
@@ -1434,7 +1469,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
                 lhs.llvm_value = llvm_builder->CreateFCmpOEQ(lhs.llvm_value, rhs.llvm_value);
             } else if (lhs.type == TYPE_STRING) {
                 
-
+                // TODO
 
             } else { // Int or Bool
                 lhs.llvm_value = llvm_builder->CreateICmpEQ(lhs.llvm_value, rhs.llvm_value);
@@ -1445,7 +1480,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
                 lhs.llvm_value = llvm_builder->CreateFCmpONE(lhs.llvm_value, rhs.llvm_value);
             } else if (lhs.type == TYPE_STRING) {
                 
-
+                // TODO
                 
             } else { // Int or Bool
                 lhs.llvm_value = llvm_builder->CreateICmpNE(lhs.llvm_value, rhs.llvm_value);
