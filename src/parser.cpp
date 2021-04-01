@@ -175,7 +175,6 @@ bool Parser::program() {
     std::vector<llvm::Type*> params;
     llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", *llvm_module);
-    func->setCallingConv(llvm::CallingConv::C);
 
     // By defining up here we guarantee this is the first "main" function declared, so no suffix in LLVM
     // which makes it the program entrypoint
@@ -248,7 +247,7 @@ bool Parser::programBody() {
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
     llvm_builder->SetInsertPoint(entry);
 
-    // TODO Allocate for declared variables
+    // TODO Code gen: Allocate declared variables
 
     
     if (!statementBlockHelper()) {
@@ -318,7 +317,11 @@ bool Parser::procedureDeclaration(Symbol &decl) {
     }
     llvm::FunctionType *ft = llvm::FunctionType::get(getLLVMType(decl.type), params, false);
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, decl.id, *llvm_module);
-    func->setCallingConv(llvm::CallingConv::C);
+    // Set param names
+    int i = 0;
+    for (auto &p: func->args()) {
+        p.setName(decl.params[i++].id);
+    }
     decl.llvm_function = func;
 
 
