@@ -80,5 +80,7 @@ class Parser {
         llvm::LLVMContext *llvm_context;
         llvm::Module *llvm_module;
         llvm::IRBuilder<> *llvm_builder;
+
+        llvm::Type *getLLVMType(Type t);
 };
 #endif

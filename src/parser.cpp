@@ -303,7 +303,10 @@ bool Parser::procedureDeclaration(Symbol &decl) {
 
     // Code gen: function
     std::vector<llvm::Type*> params;
-    llvm::FunctionType *ft = llvm::FunctionType::get(llvm_builder->getInt32Ty(), params, false);
+    for (auto &p: decl.params) {
+        params.push_back(getLLVMType(p.type));
+    }
+    llvm::FunctionType *ft = llvm::FunctionType::get(getLLVMType(decl.type), params, false);
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, decl.id, *llvm_module);
     func->setCallingConv(llvm::CallingConv::C);
 
@@ -1604,4 +1607,22 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
     // Else both are non-array
 
     return compatible;
+}
+
+
+llvm::Type *Parser::getLLVMType(Type t) {
+    switch (t) {
+        case TYPE_INT:
+            return llvm_builder->getInt32Ty();
+        case TYPE_FLOAT:
+            return llvm_builder->getFloatTy();
+        case TYPE_STRING:
+            // String = array of 8 bit ints
+            return llvm_builder->getInt8PtrTy();
+        case TYPE_BOOL:
+            return llvm_builder->getInt1Ty();
+        default:
+            error("Invalid type");
+            return nullptr;
+    }
 }

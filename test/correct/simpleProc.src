@@ -12,6 +12,11 @@ procedure test : integer()
     return x;
 end procedure;
 
+procedure test2 : integer(variable r: integer)
+    begin
+    return r;
+end procedure;
+
 begin
 
 i := 100;
