@@ -1208,7 +1208,7 @@ bool Parser::procCallOrName(Symbol &id) {
 
 
         // Code gen: Procedure call
-        llvm_builder->CreateCall(id.llvm_function, argList);
+        id.llvm_value = llvm_builder->CreateCall(id.llvm_function, argList);
 
     } else {
         debugParseTrace("Name");
