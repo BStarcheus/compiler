@@ -65,7 +65,7 @@ class Parser {
         bool name(Symbol &id);
         bool arrayIndexHelper(Symbol &id);
         bool nameCodeGen(Symbol &id);
-        bool argumentList(Symbol &id);
+        bool argumentList(Symbol &id, std::vector<llvm::Value*> &argList);
         bool number(Symbol &num);
         bool string(Symbol &str);
 

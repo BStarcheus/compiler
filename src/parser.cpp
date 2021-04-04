@@ -1147,7 +1147,8 @@ bool Parser::procCallOrName(Symbol &id) {
         }
 
         // Optional
-        argumentList(id);
+        std::vector<llvm::Value*> argList;
+        argumentList(id, argList);
         if (errorFlag) {
             return false;
         }
@@ -1156,6 +1157,11 @@ bool Parser::procCallOrName(Symbol &id) {
             error("Missing \')\' in procedure call");
             return false;
         }
+
+
+        // Code gen: Procedure call
+        llvm_builder->CreateCall(id.llvm_function, argList);
+
     } else {
         debugParseTrace("Name");
 
@@ -1255,7 +1261,7 @@ bool Parser::nameCodeGen(Symbol &id) {
  *      <expression> , <argument_list>
  *    | <expression>
  */
-bool Parser::argumentList(Symbol &id) {
+bool Parser::argumentList(Symbol &id, std::vector<llvm::Value*> &argList) {
     debugParseTrace("Argument List");
 
     Symbol arg;
@@ -1276,6 +1282,7 @@ bool Parser::argumentList(Symbol &id) {
     } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
         return false;
     }
+    argList.push_back(arg.llvm_value);
     argInd++;
 
 
@@ -1296,6 +1303,7 @@ bool Parser::argumentList(Symbol &id) {
         } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
             return false;
         }
+        argList.push_back(arg.llvm_value);
         argInd++;
     }
 
