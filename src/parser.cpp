@@ -507,6 +507,8 @@ bool Parser::procedureBody() {
         // Update symbol
         param.llvm_value = argVal;
         scoper->setSymbol(param.id, param, param.isGlobal);
+
+        // TODO Arrays
     }
 
 
@@ -522,11 +524,6 @@ bool Parser::procedureBody() {
         return false;
     }
 
-    // Code gen: end function, return 0
-    llvm::Value *retVal = llvm::ConstantInt::get(
-        *llvm_context,
-        llvm::APInt(32, 0, true));
-    llvm_builder->CreateRet(retVal);
 
     // Verify function. Must have a return value by now
     bool invalid = llvm::verifyFunction(*func, &llvm::errs());
@@ -849,6 +846,8 @@ bool Parser::returnStatement() {
         return false;
     }
 
+    // Code gen: Return
+    llvm_builder->CreateRet(exp.llvm_value);
     return true;
 }
 
@@ -1170,6 +1169,9 @@ bool Parser::procCallOrName(Symbol &id) {
         if (!arrayIndexHelper(id)) {
             return false;
         }
+        if (!nameCodeGen(id)) {
+            return false;
+        }
     }
     return true;
 }
@@ -1200,6 +1202,9 @@ bool Parser::name(Symbol &id) {
     }
 
     if (!arrayIndexHelper(id)) {
+        return false;
+    }
+    if (!nameCodeGen(id)) {
         return false;
     }
     return true;
@@ -1236,6 +1241,13 @@ bool Parser::arrayIndexHelper(Symbol &id) {
             return false;
         }
     }
+    return true;
+}
+
+bool Parser::nameCodeGen(Symbol &id) {
+
+    // TODO Arrays
+    id.llvm_value = llvm_builder->CreateLoad(getLLVMType(id.type), id.llvm_address);
     return true;
 }
 
