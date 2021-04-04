@@ -745,12 +745,36 @@ bool Parser::ifStatement() {
     if (exp.type == TYPE_INT) {
         exp.type = TYPE_BOOL;
 
+        llvm::Value *zeroVal32 = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+        exp.llvm_value = llvm_builder->CreateICmpNE(
+            exp.llvm_value, 
+            zeroVal32);
+
     } else if (exp.type != TYPE_BOOL) {
         error("If statement expressions must evaluate to bool");
         return false;
     }
 
     // Code gen: If statement
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(1, 0, true));
+    llvm::Value *ifCond = llvm_builder->CreateICmpNE(
+        exp.llvm_value, 
+        zeroVal);
+    exp.llvm_value = ifCond;
+
+    llvm::BasicBlock *ifThenBB = llvm::BasicBlock::Create(*llvm_context, "ifThen", func);
+    llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*llvm_context, "else", func);
+    llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*llvm_context, "merge", func);
+
+    llvm_builder->CreateCondBr(ifCond, ifThenBB, elseBB);
+    llvm_builder->SetInsertPoint(ifThenBB);
 
 
     if (!isTokenType(T_THEN)) {
@@ -761,12 +785,24 @@ bool Parser::ifStatement() {
         return false;
     }
 
+    // Merge ifThen block into merge if there wasn't a return
+    if (ifThenBB->getTerminator() == nullptr) {
+        llvm_builder->CreateBr(mergeBB);
+    }
+
+    llvm_builder->SetInsertPoint(elseBB);
     // Optional
     if (isTokenType(T_ELSE)) {
         if (!statementBlockHelper()) {
             return false;
         }
     }
+    // Merge else block into merge if there wasn't a return
+    if (elseBB->getTerminator() == nullptr) {
+        llvm_builder->CreateBr(mergeBB);
+    }
+
+    llvm_builder->SetInsertPoint(mergeBB);
 
     if (!isTokenType(T_END)) {
         error("Missing \'end\' in if statement");
