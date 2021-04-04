@@ -263,7 +263,7 @@ bool Parser::programBody() {
             *llvm_module,
             ty,
             false,
-            llvm::GlobalValue::CommonLinkage,
+            llvm::GlobalValue::ExternalLinkage,
             initValue,
             it->second.id);
 
@@ -467,8 +467,8 @@ bool Parser::procedureBody() {
         return false;
     }
 
-
-    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+    Symbol currProc = scoper->getCurrentProcedure();
+    llvm::Function *func = currProc.llvm_function;
 
     // Code gen: Set entrypoint
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
@@ -492,6 +492,23 @@ bool Parser::procedureBody() {
         it->second.llvm_address = addr;
     }
 
+    // Code gen: Store argument values in allocated addresses
+    auto arg = func->arg_begin();
+    for (auto &p: currProc.params) {
+        // Params vector is not up to date with llvm addresses
+        // Get the symbol
+        Symbol param = scoper->getSymbol(p.id);
+
+        // Get the arg value and increment to next arg
+        llvm::Value *argVal = arg++;
+        // Store arg value in address
+        llvm_builder->CreateStore(argVal, param.llvm_address);
+
+        // Update symbol
+        param.llvm_value = argVal;
+        scoper->setSymbol(param.id, param, param.isGlobal);
+    }
+
 
     if (!statementBlockHelper()) {
         return false;
@@ -511,6 +528,15 @@ bool Parser::procedureBody() {
         llvm::APInt(32, 0, true));
     llvm_builder->CreateRet(retVal);
 
+    // Verify function. Must have a return value by now
+    bool invalid = llvm::verifyFunction(*func, &llvm::errs());
+    if (invalid) {
+        error("Errors found in procedure");
+        if (debugCodegenFlag) {
+            llvm_module->print(llvm::outs(), nullptr);
+        }
+        return false;
+    }
     return true;
 }
 

@@ -3,6 +3,7 @@ Program MyTestProgram is
 variable i : integer;
 variable f : float;
 variable b : bool;
+variable s: string;
 
 procedure test : integer()
     variable x : integer;
@@ -15,8 +16,9 @@ procedure test : integer()
     return x;
 end procedure;
 
-procedure test2 : integer(variable r: integer)
+procedure test2 : integer(variable r: integer, variable d: float)
     begin
+    s := "S";
     return r;
 end procedure;
 
