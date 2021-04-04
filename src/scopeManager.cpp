@@ -144,6 +144,10 @@ SymbolTable::iterator ScopeManager::getScopeEnd(bool g) {
     }
 }
 
+bool ScopeManager::isCurrentScopeGlobal() {
+    return global == local;
+}
+
 // Set the procedure symbol in the local scope for easy access
 void ScopeManager::setCurrentProcedure(Symbol proc) {
     local->setSymbol(_CUR_PROC, proc);

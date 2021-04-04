@@ -247,31 +247,6 @@ bool Parser::programBody() {
     llvm::BasicBlock *entry = llvm::BasicBlock::Create(*llvm_context, "entry", func);
     llvm_builder->SetInsertPoint(entry);
 
-    // Code gen: Allocate declared variables
-    for (SymbolTable::iterator it = scoper->getScopeBegin();
-         it != scoper->getScopeEnd();
-         ++it) {
-
-        if (it->second.symbolType != ST_VARIABLE) { continue; }
-
-        llvm::Type *ty = getLLVMType(it->second.type);
-
-        // Outer scope == Global
-        // Default initialized value
-        llvm::Constant *initValue = llvm::Constant::getNullValue(ty);
-        llvm::Value *addr = new llvm::GlobalVariable(
-            *llvm_module,
-            ty,
-            false,
-            llvm::GlobalValue::ExternalLinkage,
-            initValue,
-            it->second.id);
-
-        // TODO Arrays
-
-        it->second.llvm_address = addr;
-    }
-
     
     if (!statementBlockHelper()) {
         return false;
@@ -302,7 +277,9 @@ bool Parser::declaration() {
     debugParseTrace("Declaration");
 
     Symbol decl;
-    decl.isGlobal = isTokenType(T_GLOBAL);
+    decl.isGlobal = isTokenType(T_GLOBAL) ||
+                    scoper->isCurrentScopeGlobal(); 
+    // Outermost scope is still global even without keyword
 
     if (procedureDeclaration(decl)) {
 
@@ -585,6 +562,29 @@ bool Parser::variableDeclaration(Symbol &decl) {
         }
     }
 
+    // Code gen: Global variable allocation
+    if (decl.isGlobal) {
+        // Previously did this in bulk in program body,
+        // but then global variables don't have an LLVM address when 
+        // they may be accessed inside procedures
+
+        llvm::Type *ty = getLLVMType(decl.type);
+
+        // Default initialized value
+        llvm::Constant *initValue = llvm::Constant::getNullValue(ty);
+        llvm::Value *addr = new llvm::GlobalVariable(
+            *llvm_module,
+            ty,
+            false,
+            llvm::GlobalValue::ExternalLinkage,
+            initValue,
+            decl.id);
+
+        // TODO Arrays
+
+        decl.llvm_address = addr;
+    }
+
     // Set in scope
     scoper->setSymbol(decl.id, decl, decl.isGlobal);
     
@@ -676,6 +676,13 @@ bool Parser::assignmentStatement() {
     if (!compatibleTypeCheck(dest, exp)) {
         return false;
     }
+
+    // Code gen: Assignment
+    llvm_builder->CreateStore(exp.llvm_value, dest.llvm_address);
+    
+    // Update symbol
+    dest.llvm_value = exp.llvm_value;
+    scoper->setSymbol(dest.id, dest, dest.isGlobal);
 
     return true;
 }
@@ -1356,7 +1363,7 @@ bool Parser::string(Symbol &str) {
         str.id = token.val;
         str.tokenType = token.type;
         str.type = TYPE_STRING;
-        str.llvm_value = llvm_builder->CreateGlobalString(token.val);
+        str.llvm_value = llvm_builder->CreateGlobalStringPtr(token.val);
     }
     // Consume token
     return isTokenType(T_STRING_VAL);
