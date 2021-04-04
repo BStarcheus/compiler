@@ -736,6 +736,11 @@ bool Parser::ifStatement() {
         return false;
     }
 
+    if (!isTokenType(T_RPAREN)) {
+        error("Missing \')\' in if statement");
+        return false;
+    }
+
     // Type check/convert to bool
     if (exp.type == TYPE_INT) {
         exp.type = TYPE_BOOL;
@@ -745,10 +750,9 @@ bool Parser::ifStatement() {
         return false;
     }
 
-    if (!isTokenType(T_RPAREN)) {
-        error("Missing \')\' in if statement");
-        return false;
-    }
+    // Code gen: If statement
+
+
     if (!isTokenType(T_THEN)) {
         error("Missing \'then\' in if statement");
         return false;
@@ -801,6 +805,10 @@ bool Parser::loopStatement() {
     if (!expression(exp)) {
         return false;
     }
+    if (!isTokenType(T_RPAREN)) {
+        error("Missing \')\' in loop");
+        return false;
+    }
 
     // Type check/convert to bool
     if (exp.type == TYPE_INT) {
@@ -811,11 +819,8 @@ bool Parser::loopStatement() {
         return false;
     }
 
-
-    if (!isTokenType(T_RPAREN)) {
-        error("Missing \')\' in loop");
-        return false;
-    }
+    // Code gen: Loop
+    
 
     if (!statementBlockHelper()) {
         return false;
@@ -1644,6 +1649,11 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
     // int <-> bool
     // int <-> float
     // Otherwise types must match exactly
+
+    // 0 used for comparisons below
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
     
     if (dest.type == exp.type) {
         compatible = true;
@@ -1652,23 +1662,36 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
             compatible = true;
             // Convert exp to int
             exp.type = TYPE_INT;
+            exp.llvm_value = llvm_builder->CreateIntCast(
+                exp.llvm_value,
+                llvm_builder->getInt32Ty(),
+                false);
 
         } else if (exp.type == TYPE_FLOAT) {
             compatible = true;
             // Convert exp to int
             exp.type = TYPE_INT;
+            exp.llvm_value = llvm_builder->CreateFPToSI(
+                exp.llvm_value,
+                llvm_builder->getInt32Ty());
         }
     } else if (dest.type == TYPE_FLOAT) {
         if (exp.type == TYPE_INT) {
             compatible = true;
             // Convert exp to float
             exp.type = TYPE_FLOAT;
+            exp.llvm_value = llvm_builder->CreateSIToFP(
+                exp.llvm_value,
+                llvm_builder->getFloatTy());
         }
     } else if (dest.type == TYPE_BOOL) {
         if (exp.type == TYPE_INT) {
             compatible = true;
             // Convert exp to bool
             exp.type = TYPE_BOOL;
+            exp.llvm_value = llvm_builder->CreateICmpNE(
+                exp.llvm_value, 
+                zeroVal);
         }
     }
 
