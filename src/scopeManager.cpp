@@ -251,9 +251,4 @@ void ScopeManager::insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *
     func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "sqrt_", *mod);
     s.llvm_function = func;
     global->setSymbol(str, s);
-
-    
-    // Function used to prevent getString memory leaks
-    ft = llvm::FunctionType::get(build->getVoidTy(), {}, false);
-    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "freeAllStrings", *mod);
 }
