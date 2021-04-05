@@ -32,7 +32,7 @@ PROGRAM grant IS
 		begin
 			i := 3;  // this should fail; we do not allow forward references
 			return 1;
-		end procedure
+		end procedure;
                 global variable i : integer;
 		begin
 			for(i := 0; i < zach)
