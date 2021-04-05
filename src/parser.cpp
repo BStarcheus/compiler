@@ -770,8 +770,8 @@ bool Parser::ifStatement() {
     exp.llvm_value = ifCond;
 
     llvm::BasicBlock *ifThenBB = llvm::BasicBlock::Create(*llvm_context, "ifThen", func);
-    llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*llvm_context, "else", func);
-    llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*llvm_context, "merge", func);
+    llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*llvm_context, "ifElse", func);
+    llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*llvm_context, "ifMerge", func);
 
     llvm_builder->CreateCondBr(ifCond, ifThenBB, elseBB);
     llvm_builder->SetInsertPoint(ifThenBB);
@@ -786,7 +786,7 @@ bool Parser::ifStatement() {
     }
 
     // Merge ifThen block into merge if there wasn't a return
-    if (ifThenBB->getTerminator() == nullptr) {
+    if (llvm_builder->GetInsertBlock()->getTerminator() == nullptr) {
         llvm_builder->CreateBr(mergeBB);
     }
 
@@ -798,7 +798,7 @@ bool Parser::ifStatement() {
         }
     }
     // Merge else block into merge if there wasn't a return
-    if (elseBB->getTerminator() == nullptr) {
+    if (llvm_builder->GetInsertBlock()->getTerminator() == nullptr) {
         llvm_builder->CreateBr(mergeBB);
     }
 
@@ -837,6 +837,20 @@ bool Parser::loopStatement() {
         error("Missing \':\' in loop");
         return false;
     }
+
+
+    // Code gen: Loop
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    llvm::BasicBlock *loopHeaderBB = llvm::BasicBlock::Create(*llvm_context, "loopHead", func);
+    llvm::BasicBlock *loopBodyBB = llvm::BasicBlock::Create(*llvm_context, "loopBody", func);
+    llvm::BasicBlock *loopMergeBB = llvm::BasicBlock::Create(*llvm_context, "loopMerge", func);
+
+    llvm_builder->CreateBr(loopHeaderBB);
+    llvm_builder->SetInsertPoint(loopHeaderBB);
+
+
     Symbol exp;
     if (!expression(exp)) {
         return false;
@@ -850,17 +864,45 @@ bool Parser::loopStatement() {
     if (exp.type == TYPE_INT) {
         exp.type = TYPE_BOOL;
 
+        llvm::Value *zeroVal32 = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+        exp.llvm_value = llvm_builder->CreateICmpNE(
+            exp.llvm_value,
+            zeroVal32);
+
     } else if (exp.type != TYPE_BOOL) {
         error("Loop statement expressions must evaluate to bool");
         return false;
     }
 
-    // Code gen: Loop
-    
+    // Code gen: Loop condition
+
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(1, 0, true));
+    llvm::Value *loopCond = llvm_builder->CreateICmpNE(
+        exp.llvm_value, 
+        zeroVal);
+    exp.llvm_value = loopCond;
+
+    llvm_builder->CreateCondBr(loopCond, loopBodyBB, loopMergeBB);
+
+    // Loop body
+    llvm_builder->SetInsertPoint(loopBodyBB);
 
     if (!statementBlockHelper()) {
         return false;
     }
+
+    // Go back to the header to check the condition
+    // Merge else block into merge if there wasn't a return
+    if (llvm_builder->GetInsertBlock()->getTerminator() == nullptr) {
+        llvm_builder->CreateBr(loopHeaderBB);
+    }
+
+    llvm_builder->SetInsertPoint(loopMergeBB);
+
     if (!isTokenType(T_END)) {
         error("Missing \'end\' in loop");
         return false;

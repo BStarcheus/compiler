@@ -1,0 +1,24 @@
+Program MyTestProgram is
+
+variable x: integer;
+variable y: integer;
+variable s: string;
+
+procedure looper : string(variable i: integer, variable max: integer)
+    variable ind: integer;
+    begin
+    for (ind := i; ind < max)
+        if(ind == 3) then return "Hello there";
+        else ind := ind + 1;
+        end if;
+    end for;
+    return "General Kenobi";
+end procedure;
+
+begin
+
+x := 0;
+y := 5;
+s := looper(x, y);
+
+end program.
