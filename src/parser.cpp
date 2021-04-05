@@ -263,6 +263,11 @@ bool Parser::programBody() {
         return false;
     }
 
+
+    // Free memory from strings stored with getString
+    func = llvm_module->getFunction("freeAllStrings");
+    llvm_builder->CreateCall(func, {});
+
     // Code gen: end main function, return 0
     llvm::Value *retVal = llvm::ConstantInt::get(
         *llvm_context,
