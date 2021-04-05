@@ -1,2 +1,2 @@
 ./compiler "$@"
-clang out.s -o a.out
+clang out.s runtime.o -o a.out

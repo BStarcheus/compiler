@@ -1,3 +1,4 @@
+C = clang
 CC = clang++
 FLAGS = -std=c++11 -g
 
@@ -5,11 +6,14 @@ SRC = $(wildcard src/*.cpp)
 
 LLVM = `llvm-config --cxxflags --ldflags --libs --system-libs`
 
-compiler: $(SRC)
+compiler: $(SRC) runtime
 	$(CC) $(FLAGS) $(SRC) -o compiler $(LLVM)
+
+runtime: src/runtime.c
+	$(C) -c src/runtime.c -o runtime.o
 
 parsetest: compiler
 	./test/runtests.sh
 
 clean:
-	rm compiler
+	rm compiler runtime.o out.s

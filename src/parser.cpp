@@ -216,6 +216,9 @@ bool Parser::programHeader() {
     // Create LLVM module with program name
     llvm_module = new llvm::Module(id.id, *llvm_context);
 
+    // Now that module is created, add runtime functions
+    scoper->insertRuntimeFunctions(llvm_module, llvm_builder);
+
     if (!isTokenType(T_IS)) {
         error("Missing \'is\' keyword in program header");
         return false;
