@@ -61,6 +61,6 @@ bool putstring(char* value) {
     return true;
 }
 
-float sqrt_(int value) {
+float _sqrt(int value) {
     return sqrtf((float)value);
 }

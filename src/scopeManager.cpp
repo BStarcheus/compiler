@@ -248,7 +248,7 @@ void ScopeManager::insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *
     str = "sqrt";
     s = global->getSymbol(str);
     ft = llvm::FunctionType::get(build->getFloatTy(), {build->getInt32Ty()}, false);
-    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "sqrt_", *mod);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "_sqrt", *mod);
     s.llvm_function = func;
     global->setSymbol(str, s);
 }
