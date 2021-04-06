@@ -9,18 +9,21 @@
 bool getbool() {
     int b;
     scanf("%i", &b);
+    getchar(); // eat newline
     return b != 0;
 }
 
 int getinteger() {
     int i;
     scanf("%i", &i);
+    getchar(); // eat newline
     return i;
 }
 
 float getfloat() {
     float f;
     scanf("%f", &f);
+    getchar(); // eat newline
     return f;
 }
 
