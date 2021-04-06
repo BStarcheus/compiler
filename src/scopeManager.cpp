@@ -1,6 +1,5 @@
 #include "scopeManager.h"
 #include <iostream>
-#include "llvm/IR/Constants.h"
 
 ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;
@@ -184,7 +183,7 @@ void ScopeManager::printScope(bool g) {
     }
 }
 
-void ScopeManager::insertRuntimeFunctions(llvm::LLVMContext *context, llvm::Module *mod, llvm::IRBuilder<> *build) {
+void ScopeManager::insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *build) {
     Symbol s;
     std::string str;
     llvm::FunctionType *ft;
@@ -207,6 +206,13 @@ void ScopeManager::insertRuntimeFunctions(llvm::LLVMContext *context, llvm::Modu
     str = "getfloat";
     s = global->getSymbol(str);
     ft = llvm::FunctionType::get(build->getFloatTy(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "getstring";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt8PtrTy(), {}, false);
     func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
     s.llvm_function = func;
     global->setSymbol(str, s);
@@ -243,49 +249,6 @@ void ScopeManager::insertRuntimeFunctions(llvm::LLVMContext *context, llvm::Modu
     s = global->getSymbol(str);
     ft = llvm::FunctionType::get(build->getFloatTy(), {build->getInt32Ty()}, false);
     func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "sqrt_", *mod);
-    s.llvm_function = func;
-    global->setSymbol(str, s);
-
-
-    str = "getstring";
-    llvm::Type *ty = build->getInt8PtrTy();
-
-    // Wrapper function to prevent memory leak
-    // User calls getstring, but it is named _getstring in LLVM
-    s = global->getSymbol(str);
-    ft = llvm::FunctionType::get(ty, {}, false);
-    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "_getstring", *mod);
-    llvm::BasicBlock *entry = llvm::BasicBlock::Create(*context, "entry", func);
-    build->SetInsertPoint(entry);
-
-    // Create a global string variable to store the result
-    // LLVM will handle deleting the memory in the end
-    
-    llvm::Constant *initValue = llvm::Constant::getNullValue(ty);
-    llvm::Value *addr = new llvm::GlobalVariable(
-        *mod,
-        ty,
-        false,
-        llvm::GlobalValue::ExternalLinkage,
-        initValue,
-        "getstringval");
-    llvm::Value *addr2 = build->CreateAlloca(
-            ty,
-            nullptr,
-            "getstringval");
-
-
-    // Actual getstring logic
-    ft = llvm::FunctionType::get(addr2->getType(), {addr2->getType()}, false);
-    llvm::Function *func2 = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
-
-    // llvm::Value *argVal = build->CreateLoad(ty, addr2);
-    //build->CreateStore(build->CreateGlobalStringPtr(""), addr);
-    llvm::Value *callVal = build->CreateCall(mod->getFunction(str), {addr2});
-    llvm::Value *retVal = build->CreateLoad(ty, callVal);
-    build->CreateStore(retVal, addr);
-    build->CreateRet(build->CreateLoad(ty, addr));
-
     s.llvm_function = func;
     global->setSymbol(str, s);
 }
