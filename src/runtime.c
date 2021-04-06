@@ -27,9 +27,11 @@ float getfloat() {
     return f;
 }
 
-char* getstring() {
-    char *s = malloc(256 * sizeof(char));
+char* getstring(char *s) {
+    //char *s = malloc(256 * sizeof(char));
+    printf("%p\n", s);
     fgets(s, 256, stdin);
+    printf("%s\n", s);
 
     // Remove newline char
     if ((strlen(s) > 0) && (s[strlen(s) - 1] == '\n')) {
