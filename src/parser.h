@@ -71,6 +71,7 @@ class Parser {
 
         bool arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
         bool relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
+        llvm::Value* stringEqualHelper(Symbol &lhs, Symbol &rhs);
         bool expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
         bool compatibleTypeCheck(Symbol &dest, Symbol &exp);
 

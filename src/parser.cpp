@@ -1663,9 +1663,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
             if (lhs.type == TYPE_FLOAT) {
                 lhs.llvm_value = llvm_builder->CreateFCmpOEQ(lhs.llvm_value, rhs.llvm_value);
             } else if (lhs.type == TYPE_STRING) {
-                
-                // TODO
-
+                lhs.llvm_value = stringEqualHelper(lhs, rhs);
             } else { // Int or Bool
                 lhs.llvm_value = llvm_builder->CreateICmpEQ(lhs.llvm_value, rhs.llvm_value);
             }
@@ -1674,9 +1672,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
             if (lhs.type == TYPE_FLOAT) {
                 lhs.llvm_value = llvm_builder->CreateFCmpONE(lhs.llvm_value, rhs.llvm_value);
             } else if (lhs.type == TYPE_STRING) {
-                
-                // TODO
-                
+                lhs.llvm_value = llvm_builder->CreateNot(stringEqualHelper(lhs, rhs));
             } else { // Int or Bool
                 lhs.llvm_value = llvm_builder->CreateICmpNE(lhs.llvm_value, rhs.llvm_value);
             }
@@ -1687,6 +1683,75 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     }
     return compatible;
 }
+
+
+/* Compare strings character by character. Return LLVM value for whether they are equal.
+ */
+llvm::Value* Parser::stringEqualHelper(Symbol &lhs, Symbol &rhs) {
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    llvm::BasicBlock *strCmpBB = llvm::BasicBlock::Create(*llvm_context, "strCmp", func);
+    llvm::BasicBlock *strCmpMergeBB = llvm::BasicBlock::Create(*llvm_context, "strCmpMerge", func);
+
+    // Initial index = 0
+    llvm::Value *indAddr = llvm_builder->CreateAlloca(
+        getLLVMType(TYPE_INT), 
+        nullptr,
+        "strCmpInd");
+    llvm::Value *index = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
+    llvm_builder->CreateStore(index, indAddr);
+
+    llvm_builder->CreateBr(strCmpBB);
+    llvm_builder->SetInsertPoint(strCmpBB);
+
+    index = llvm_builder->CreateLoad(getLLVMType(TYPE_INT), indAddr);
+
+
+    // Get element pointer to string character, then load the character
+    llvm::Value *lhsCharAddr = llvm_builder->CreateInBoundsGEP(
+        lhs.llvm_value,
+        index);
+    llvm::Value *rhsCharAddr = llvm_builder->CreateInBoundsGEP(
+        rhs.llvm_value,
+        index);
+    llvm::Value *lhsCharVal = llvm_builder->CreateLoad(
+        llvm_builder->getInt8Ty(), 
+        lhsCharAddr);
+    llvm::Value *rhsCharVal = llvm_builder->CreateLoad(
+        llvm_builder->getInt8Ty(), 
+        rhsCharAddr);
+
+    // lhs == rhs ?
+    llvm::Value *cmp = llvm_builder->CreateICmpEQ(lhsCharVal, rhsCharVal);
+
+
+    // Null terminator char \0
+    llvm::Value *zeroVal8 = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(8, 0, true));
+    
+    // See if one char is null terminator. 
+    // Ignore the rhs char since if they're unequal it doesn't matter anyway
+    llvm::Value *notNullTerm = llvm_builder->CreateICmpNE(lhsCharVal, zeroVal8);
+
+    // Increment index
+    llvm::Value *increment = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 1, true));
+    index = llvm_builder->CreateAdd(index, increment);
+    llvm_builder->CreateStore(index, indAddr);
+
+
+    // Keep checking if not the end AND lhs == rhs so far
+    llvm::Value *andCond = llvm_builder->CreateAnd(cmp, notNullTerm);
+    llvm_builder->CreateCondBr(andCond, strCmpBB, strCmpMergeBB);
+
+    llvm_builder->SetInsertPoint(strCmpMergeBB);
+    return cmp;
+}
+
 
 /* Type checking for expression operators & |
  */

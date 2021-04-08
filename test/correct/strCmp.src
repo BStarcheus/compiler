@@ -1,0 +1,30 @@
+Program strcmp is
+
+variable s1 : string;
+variable s2 : string;
+variable eq : bool;
+variable neq : bool;
+variable tmp : bool;
+
+procedure testLocalGlobalEq : bool()
+    variable s : string;
+    begin
+    s := "Hello there";
+    return s == s1;
+end procedure;
+
+begin
+tmp := putString("Enter string 1");
+s1 := getString();
+tmp := putString("Enter string 2");
+s2 := getString();
+eq := s1 == s2;
+neq := s1 != s2;
+tmp := putBool(eq);
+tmp := putBool(neq);
+
+tmp := putString("Is string 1 == Hello there");
+eq := testLocalGlobalEq();
+tmp := putBool(eq);
+
+end program.
