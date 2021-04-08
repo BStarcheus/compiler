@@ -2,7 +2,6 @@
 #define SCOPEMANAGER_H
 
 #include "scope.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
 
@@ -26,7 +25,7 @@ class ScopeManager {
 
         void printScope(bool g);
 
-        void insertRuntimeFunctions(llvm::LLVMContext *context, llvm::Module *mod, llvm::IRBuilder<> *build);
+        void insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *build);
 
         bool debugFlag;
         bool errorFlag;

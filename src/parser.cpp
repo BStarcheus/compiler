@@ -2,6 +2,7 @@
 #include "token.h"
 #include <iostream>
 
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Verifier.h"
@@ -216,7 +217,7 @@ bool Parser::programHeader() {
     llvm_module = new llvm::Module(id.id, *llvm_context);
 
     // Now that module is created, add runtime functions
-    scoper->insertRuntimeFunctions(llvm_context, llvm_module, llvm_builder);
+    scoper->insertRuntimeFunctions(llvm_module, llvm_builder);
 
     if (!isTokenType(T_IS)) {
         error("Missing \'is\' keyword in program header");

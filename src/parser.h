@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "scanner.h"
+#include "llvm/IR/LLVMContext.h"
 
 class Parser {
     public:
