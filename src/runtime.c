@@ -37,7 +37,9 @@ char* getstring() {
     }
     
     // TODO Prevent memory leak :/
-    // See commit 3647f3d5cdb83b9b241a984e497715caa6462185 for my failed solution
+    // See commits of what I tried: 
+    //      3647f3d5cdb83b9b241a984e497715caa6462185
+    //      c1e315dd653813f6ad9bdf7038f4b028c9a3e54e
     return s;
 }
 
