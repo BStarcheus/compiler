@@ -462,12 +462,14 @@ bool Parser::procedureBody() {
         if (it->second.symbolType != ST_VARIABLE) { continue; }
 
         llvm::Type *ty = getLLVMType(it->second.type);
+        if (it->second.isArr) {
+            ty = llvm::ArrayType::get(ty, it->second.arrSize);
+        }
+
         llvm::Value *addr = llvm_builder->CreateAlloca(
             ty, 
             nullptr,
             it->second.id);
-
-        // TODO Arrays
 
         it->second.llvm_address = addr;
     }
@@ -572,6 +574,9 @@ bool Parser::variableDeclaration(Symbol &decl) {
         // they may be accessed inside procedures
 
         llvm::Type *ty = getLLVMType(decl.type);
+        if (decl.isArr) {
+            ty = llvm::ArrayType::get(ty, decl.arrSize);
+        }
 
         // Default initialized value
         llvm::Constant *initValue = llvm::Constant::getNullValue(ty);
@@ -582,8 +587,6 @@ bool Parser::variableDeclaration(Symbol &decl) {
             llvm::GlobalValue::ExternalLinkage,
             initValue,
             decl.id);
-
-        // TODO Arrays
 
         decl.llvm_address = addr;
     }
