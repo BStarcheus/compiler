@@ -1,0 +1,31 @@
+program arr is
+    variable tmp : integer;
+    variable s : string;
+    variable arr : string[3];
+
+    procedure stuff : integer(variable x : string[3])
+    begin
+        tmp := putstring(x[0]);
+        tmp := putstring(x[1]);
+        tmp := putstring(x[2]);
+
+        s := getstring();
+        x[0] := s;
+        x[1] := s;
+        x[2] := s;
+
+        tmp := putstring(x[0]);
+        tmp := putstring(x[1]);
+        tmp := putstring(x[2]);
+        tmp := putstring(arr[0]);
+        tmp := putstring(arr[1]);
+        tmp := putstring(arr[2]);
+
+        return 0;
+    end procedure;
+begin
+    arr[0] := "Hello there";
+    arr[1] := getstring();
+    arr[2] := "You are a bold one";
+    tmp := stuff(arr);
+end program.

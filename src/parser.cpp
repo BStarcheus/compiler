@@ -315,8 +315,14 @@ bool Parser::procedureDeclaration(Symbol &decl) {
 
     // Code gen: function
     std::vector<llvm::Type*> params;
+    llvm::Type *ty = nullptr;
     for (auto &p: decl.params) {
-        params.push_back(getLLVMType(p.type));
+        ty = getLLVMType(p.type);
+        if (p.isArr) {
+            // []* array pointer type, since the arg passed is an address to array
+            ty = llvm::ArrayType::get(ty, p.arrSize)->getPointerTo();
+        }
+        params.push_back(ty);
     }
     llvm::FunctionType *ft = llvm::FunctionType::get(getLLVMType(decl.type), params, false);
     llvm::Function *func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, decl.id, *llvm_module);
@@ -483,14 +489,74 @@ bool Parser::procedureBody() {
 
         // Get the arg value and increment to next arg
         llvm::Value *argVal = arg++;
+
         // Store arg value in address
-        llvm_builder->CreateStore(argVal, param.llvm_address);
+        if (param.isArr) {
+            // argVal is an llvm_address to the array
+            // Loop through each index and copy values from
+            // argument to parameter (local) array
 
-        // Update symbol
-        param.llvm_value = argVal;
-        scoper->setSymbol(param.id, param, param.isGlobal);
+            llvm::BasicBlock *arrArgCopyBB = llvm::BasicBlock::Create(*llvm_context, "arrArgCopy", func);
+            llvm::BasicBlock *arrArgCopyMergeBB = llvm::BasicBlock::Create(*llvm_context, "arrArgMerge", func);
 
-        // TODO Arrays
+            // Initial index = 0
+            llvm::Value *indAddr = llvm_builder->CreateAlloca(
+                getLLVMType(TYPE_INT), 
+                nullptr,
+                "arrCopyInd");
+            llvm::Value *zeroVal = llvm::ConstantInt::get(
+                *llvm_context,
+                llvm::APInt(32, 0, true));
+            llvm::Value *index = zeroVal;
+            llvm_builder->CreateStore(index, indAddr);
+
+            // Max value of index is arrSize - 1
+            llvm::Value *loopEnd = llvm::ConstantInt::get(
+                *llvm_context,
+                llvm::APInt(32, param.arrSize, true));
+
+            llvm_builder->CreateBr(arrArgCopyBB);
+            llvm_builder->SetInsertPoint(arrArgCopyBB);
+
+            index = llvm_builder->CreateLoad(getLLVMType(TYPE_INT), indAddr);
+
+
+            // Get pointer to arg array element, and load the value
+            llvm::Value *argElemAddr = llvm_builder->CreateInBoundsGEP(
+                argVal,
+                {zeroVal, index});
+            llvm::Value *argElemVal = llvm_builder->CreateLoad(
+                getLLVMType(param.type), 
+                argElemAddr);
+
+            // Get pointer to param array element, and store the arg value
+            llvm::Value *paramElemAddr = llvm_builder->CreateInBoundsGEP(
+                param.llvm_address,
+                {zeroVal, index});
+            llvm_builder->CreateStore(argElemVal, paramElemAddr);
+            
+
+            // Increment index
+            llvm::Value *increment = llvm::ConstantInt::get(
+                *llvm_context,
+                llvm::APInt(32, 1, true));
+            index = llvm_builder->CreateAdd(index, increment);
+            llvm_builder->CreateStore(index, indAddr);
+            
+            // index < arr size
+            llvm::Value *cond = llvm_builder->CreateICmpSLT(index, loopEnd);
+            llvm_builder->CreateCondBr(cond, arrArgCopyBB, arrArgCopyMergeBB);
+
+            llvm_builder->SetInsertPoint(arrArgCopyMergeBB);
+
+        } else {
+            // argVal is an llvm_value
+            llvm_builder->CreateStore(argVal, param.llvm_address);
+
+            // Update symbol
+            param.llvm_value = argVal;
+            scoper->setSymbol(param.id, param, param.isGlobal);
+        }
     }
 
 
@@ -1390,8 +1456,8 @@ bool Parser::arrayIndexHelper(Symbol &id, Symbol &ind) {
 bool Parser::nameCodeGen(Symbol &id, Symbol &ind) {
     if (id.isArr) {
         if (!id.isIndexed) {
-            error("Missing index to access array");
-            return false;
+            // Either passing whole array as arg, or doing fancy array assignment
+            return true;
         }
 
         llvm::Value *zeroVal = llvm::ConstantInt::get(
@@ -1432,7 +1498,14 @@ bool Parser::argumentList(Symbol &id, std::vector<llvm::Value*> &argList) {
     } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
         return false;
     }
-    argList.push_back(arg.llvm_value);
+    
+    if (arg.isArr && !arg.isIndexed) {
+        // Passing the entire array as arg
+        // procedureBody will copy in the values to the local array
+        argList.push_back(arg.llvm_address);
+    } else {
+        argList.push_back(arg.llvm_value);
+    }
     argInd++;
 
 
@@ -1453,7 +1526,14 @@ bool Parser::argumentList(Symbol &id, std::vector<llvm::Value*> &argList) {
         } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
             return false;
         }
-        argList.push_back(arg.llvm_value);
+        
+        if (arg.isArr && !arg.isIndexed) {
+            // Passing the entire array as arg
+            // procedureBody will copy in the values to the local array
+            argList.push_back(arg.llvm_address);
+        } else {
+            argList.push_back(arg.llvm_value);
+        }
         argInd++;
     }
 
