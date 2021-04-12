@@ -624,15 +624,13 @@ bool Parser::bound(Symbol &id) {
     debugParseTrace("Bound");
 
     Symbol num;
-
-    // TODO: Change impl with LLVM
     int temp = token.getIntVal();
 
-    if (number(num) && num.type == TYPE_INT) {
+    if (number(num) && num.type == TYPE_INT && temp > 0) {
         id.arrSize = temp;
         return true;
     } else {
-        error("Invalid bound. Must be an integer.");
+        error("Invalid bound. Must be a positive integer.");
         return false;
     }
 }
@@ -1333,7 +1331,35 @@ bool Parser::arrayIndexHelper(Symbol &id) {
             error("Array index must be type integer");
             return false;
         }
-        // TODO Code gen: check exp value < id.arrSize
+        
+        // Code gen: check 0 <= exp value < arr bound
+        llvm::Value *zeroVal = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+        llvm::Value *boundVal = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, id.arrSize, true));
+        llvm::Value *ltBound = llvm_builder->CreateICmpSLT(
+            exp.llvm_value, 
+            boundVal);
+        llvm::Value *gteZero = llvm_builder->CreateICmpSGE(
+            exp.llvm_value,
+            zeroVal);
+        llvm::Value *cond = llvm_builder->CreateAnd(ltBound, gteZero);
+        
+        llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+        llvm::BasicBlock *boundErrBB = llvm::BasicBlock::Create(*llvm_context, "boundErr", func);
+        llvm::BasicBlock *noErrBB = llvm::BasicBlock::Create(*llvm_context, "noErr", func);
+
+        // If invalid index, display error and exit
+        llvm_builder->CreateCondBr(cond, noErrBB, boundErrBB);
+        llvm_builder->SetInsertPoint(boundErrBB);
+        llvm::Function *errFunc = scoper->getSymbol("_outOfBoundsError").llvm_function;
+        llvm_builder->CreateCall(errFunc, {});
+        // Need a terminator to satisfy LLVM, but it will exit(1) before reaching
+        llvm_builder->CreateBr(noErrBB);
+        llvm_builder->SetInsertPoint(noErrBB);
+
 
         // Identifier is indexed
         id.isIndexed = true;

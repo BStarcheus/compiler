@@ -71,6 +71,10 @@ ScopeManager::ScopeManager(bool dbg) {
     s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_INT));
     global->setSymbol("sqrt", s);
+
+    s = Symbol("_outOfBoundsError", T_IDENTIFIER, ST_PROCEDURE, TYPE_UNK);
+    s.isGlobal = true;
+    global->setSymbol("_outOfBoundsError", s);
 }
 
 ScopeManager::~ScopeManager() {
@@ -249,6 +253,13 @@ void ScopeManager::insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *
     s = global->getSymbol(str);
     ft = llvm::FunctionType::get(build->getFloatTy(), {build->getInt32Ty()}, false);
     func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "_sqrt", *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "_outOfBoundsError";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getVoidTy(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "outOfBoundsError", *mod);
     s.llvm_function = func;
     global->setSymbol(str, s);
 }

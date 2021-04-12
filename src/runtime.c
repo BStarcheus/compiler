@@ -66,3 +66,8 @@ bool putstring(char* value) {
 float _sqrt(int value) {
     return sqrtf((float)value);
 }
+
+void outOfBoundsError() {
+    printf("Error: Index out of bounds\n");
+    exit(1);
+}
