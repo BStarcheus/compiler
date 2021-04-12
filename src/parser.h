@@ -74,6 +74,7 @@ class Parser {
         llvm::Value* stringEqualHelper(Symbol &lhs, Symbol &rhs);
         bool expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
         bool compatibleTypeCheck(Symbol &dest, Symbol &exp);
+        bool arrayTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op);
 
         // LLVM
         llvm::LLVMContext *llvm_context;

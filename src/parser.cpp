@@ -1623,13 +1623,19 @@ bool Parser::statementBlockHelper() {
 /* Type checking for arithmetic operators + - * / 
  */
 bool Parser::arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
+    debugParseTrace("Arithmetic type check code gen");
     if ((lhs.type != TYPE_INT && lhs.type != TYPE_FLOAT) ||
         (rhs.type != TYPE_INT && rhs.type != TYPE_FLOAT)) {
         error("Arithmetic only defined for int and float");
         return false;
     }
     
-    if (lhs.type == TYPE_INT) {
+    if ((lhs.isArr && !lhs.isIndexed) ||
+        (rhs.isArr && !rhs.isIndexed)) {
+        // Unindexed arrays do op on whole array
+        return arrayTypeCheckCodeGen(lhs, rhs, op);
+
+    } else if (lhs.type == TYPE_INT) {
         if (rhs.type == TYPE_FLOAT) {
             // Convert lhs to float
             lhs.type = TYPE_FLOAT;
@@ -1690,6 +1696,7 @@ bool Parser::arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
 /* Type checking for relational operators < <= > >= == !=
  */
 bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
+    debugParseTrace("Relation type check code gen");
     bool compatible = false;
     // If int is present with float or bool, convert int to that type
     // Otherwise types must match exactly
@@ -1699,7 +1706,12 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
         *llvm_context,
         llvm::APInt(32, 0, true));
     
-    if (lhs.type == TYPE_INT) {
+    if ((lhs.isArr && !lhs.isIndexed) ||
+        (rhs.isArr && !rhs.isIndexed)) {
+        // Unindexed arrays do op on whole array
+        return arrayTypeCheckCodeGen(lhs, rhs, op);
+
+    } else if (lhs.type == TYPE_INT) {
         if (rhs.type == TYPE_BOOL) {
             compatible = true;
             // Convert lhs to bool
@@ -1825,6 +1837,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
 /* Compare strings character by character. Return LLVM value for whether they are equal.
  */
 llvm::Value* Parser::stringEqualHelper(Symbol &lhs, Symbol &rhs) {
+    debugParseTrace("String equality");
     llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
 
     llvm::BasicBlock *strCmpBB = llvm::BasicBlock::Create(*llvm_context, "strCmp", func);
@@ -1893,6 +1906,7 @@ llvm::Value* Parser::stringEqualHelper(Symbol &lhs, Symbol &rhs) {
 /* Type checking for expression operators & |
  */
 bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
+    debugParseTrace("Expression type check code gen");
     bool compatible = false;
     
     if (lhs.type == TYPE_BOOL && rhs.type == TYPE_BOOL) {
@@ -1906,6 +1920,12 @@ bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
         return false;
     }
 
+    if ((lhs.isArr && !lhs.isIndexed) ||
+        (rhs.isArr && !rhs.isIndexed)) {
+        // Unindexed arrays do op on whole array
+        return arrayTypeCheckCodeGen(lhs, rhs, op);
+
+    }
 
     // Code gen
     switch (op.type) {
@@ -1927,6 +1947,7 @@ bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
  * and matching params to arguments
  */
 bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
+    debugParseTrace("Compatible type check");
     bool compatible = false;
     // If types are compatible, convert exp to type of dest
     // int <-> bool
@@ -2020,6 +2041,187 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
 
     return compatible;
 }
+
+
+/* Ops done on unindexed arrays affect the whole array
+ */
+bool Parser::arrayTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
+    debugParseTrace("Array type check code gen");
+    // If both arrays, must be same size
+    if (lhs.isArr && !lhs.isIndexed && rhs.isArr && !rhs.isIndexed &&
+        lhs.arrSize != rhs.arrSize) {
+        error("Operations with two unindexed arrays must have arrays of same size");
+        return false;
+    }
+
+    // Get the correct type for the array
+    // No need to check every type matching here.
+    // Error will be thrown from TypeCheckCodeGen funcs if invalid matches
+    llvm::Type *ty = nullptr;
+    Type outputType;
+    switch (op.type) {
+        case T_PLUS:
+        case T_MINUS:
+        case T_MULTIPLY:
+        case T_DIVIDE:
+            if (lhs.type == TYPE_FLOAT || rhs.type == TYPE_FLOAT) {
+                outputType = TYPE_FLOAT;
+                ty = getLLVMType(TYPE_FLOAT);
+            } else {
+                outputType = TYPE_INT;
+                ty = getLLVMType(TYPE_INT);
+            }
+            break;
+        case T_LESS:
+        case T_LESS_EQ:
+        case T_GREATER:
+        case T_GREATER_EQ:
+        case T_EQUAL:
+        case T_NOT_EQUAL:
+            outputType = TYPE_BOOL;
+            ty = getLLVMType(TYPE_BOOL);
+            break;
+        case T_AND:
+        case T_OR:
+            if (lhs.type == TYPE_BOOL) {
+                outputType = TYPE_BOOL;
+                ty = getLLVMType(TYPE_BOOL);
+            } else {
+                outputType = TYPE_INT;
+                ty = getLLVMType(TYPE_INT);
+            }
+            break;
+        default:
+            error("Invalid unindexed array operator");
+            return false;
+    }
+
+    int arrSize = lhs.arrSize;
+    if (!(lhs.isArr && !lhs.isIndexed)) {
+        arrSize = rhs.arrSize;
+    }
+    ty = llvm::ArrayType::get(ty, arrSize);
+
+    // Allocate a new array to store the result
+    llvm::Value *resultArrAddr = llvm_builder->CreateAlloca(
+        ty, 
+        nullptr,
+        "");
+
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+    llvm::BasicBlock *arrOpBB = llvm::BasicBlock::Create(*llvm_context, "arrOp", func);
+    llvm::BasicBlock *arrOpMergeBB = llvm::BasicBlock::Create(*llvm_context, "arrOpMerge", func);
+
+    // Initial index = 0
+    llvm::Value *indAddr = llvm_builder->CreateAlloca(
+        getLLVMType(TYPE_INT), 
+        nullptr,
+        "arrOpInd");
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
+    llvm::Value *index = zeroVal;
+    llvm_builder->CreateStore(index, indAddr);
+
+    // Max value of index is arrSize - 1
+    llvm::Value *loopEnd = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, arrSize, true));
+
+    llvm_builder->CreateBr(arrOpBB);
+    llvm_builder->SetInsertPoint(arrOpBB);
+
+    index = llvm_builder->CreateLoad(getLLVMType(TYPE_INT), indAddr);
+
+
+    // If the operand is an unindexed array, load the element of the current index
+    Symbol lhsElem("", lhs.tokenType, lhs.symbolType, lhs.type);
+    if (lhs.isArr && !lhs.isIndexed) {
+        // Get pointer to array element, and load the value
+        llvm::Value *elemAddr = llvm_builder->CreateInBoundsGEP(
+            lhs.llvm_address,
+            {zeroVal, index});
+        lhsElem.llvm_value = llvm_builder->CreateLoad(
+            getLLVMType(lhs.type), 
+            elemAddr);
+    } else {
+        lhsElem.llvm_value = lhs.llvm_value;
+    }
+
+    Symbol rhsElem("", rhs.tokenType, rhs.symbolType, rhs.type);
+    if (rhs.isArr && !rhs.isIndexed) {
+        // Get pointer to array element, and load the value
+        llvm::Value *elemAddr = llvm_builder->CreateInBoundsGEP(
+            rhs.llvm_address,
+            {zeroVal, index});
+        rhsElem.llvm_value = llvm_builder->CreateLoad(
+            getLLVMType(rhs.type), 
+            elemAddr);
+    } else {
+        rhsElem.llvm_value = rhs.llvm_value;
+    }
+
+    switch (op.type) {
+        case T_PLUS:
+        case T_MINUS:
+        case T_MULTIPLY:
+        case T_DIVIDE:
+            if (!arithmeticTypeCheckCodeGen(lhsElem, rhsElem, op)) {
+                return false;
+            }
+            break;
+        case T_LESS:
+        case T_LESS_EQ:
+        case T_GREATER:
+        case T_GREATER_EQ:
+        case T_EQUAL:
+        case T_NOT_EQUAL:
+            if (!relationTypeCheckCodeGen(lhsElem, rhsElem, op)) {
+                return false;
+            }
+            break;
+        case T_AND:
+        case T_OR:
+            if (!expressionTypeCheckCodeGen(lhsElem, rhsElem, op)) {
+                return false;
+            }
+            break;
+        default:
+            error("Invalid unindexed array operator");
+            return false;
+    }
+
+    // Get pointer to result array element, and store the result of the calculation
+    llvm::Value *elemAddr = llvm_builder->CreateInBoundsGEP(
+        resultArrAddr,
+        {zeroVal, index});
+    llvm_builder->CreateStore(lhsElem.llvm_value, elemAddr);
+
+
+    // Increment index
+    llvm::Value *increment = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 1, true));
+    index = llvm_builder->CreateAdd(index, increment);
+    llvm_builder->CreateStore(index, indAddr);
+    
+    // index < arr size
+    llvm::Value *cond = llvm_builder->CreateICmpSLT(index, loopEnd);
+    llvm_builder->CreateCondBr(cond, arrOpBB, arrOpMergeBB);
+
+    llvm_builder->SetInsertPoint(arrOpMergeBB);
+
+    // Update the result symbol that will be passed up the tree
+    lhs.llvm_address = resultArrAddr;
+    lhs.isArr = true;
+    lhs.isIndexed = false;
+    lhs.arrSize = arrSize;
+    lhs.type = outputType;
+
+    return true;
+}
+
 
 
 llvm::Type *Parser::getLLVMType(Type t) {

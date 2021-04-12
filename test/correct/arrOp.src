@@ -1,0 +1,19 @@
+program arr is
+    variable tmp : integer;
+    variable arr : integer[3];
+
+    procedure stuff : integer(variable x : integer[3])
+    begin
+
+    tmp := putinteger(x[0]);
+    tmp := putinteger(x[1]);
+    tmp := putinteger(x[2]);
+
+	return 0;
+    end procedure;
+begin
+    arr[0] := 1;
+    arr[1] := 2;
+    arr[2] := 3;
+    tmp := stuff(arr * 5);
+end program.
