@@ -60,8 +60,8 @@ class Parser {
 
         bool procCallOrName(Symbol &id);
         bool name(Symbol &id);
-        bool arrayIndexHelper(Symbol &id);
-        bool nameCodeGen(Symbol &id);
+        bool arrayIndexHelper(Symbol &id, Symbol &ind);
+        bool nameCodeGen(Symbol &id, Symbol &ind);
         bool argumentList(Symbol &id, std::vector<llvm::Value*> &argList);
         bool number(Symbol &num);
         bool string(Symbol &str);

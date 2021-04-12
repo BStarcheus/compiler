@@ -685,9 +685,10 @@ bool Parser::assignmentStatement() {
     llvm_builder->CreateStore(exp.llvm_value, dest.llvm_address);
     
     // Update symbol
-    dest.llvm_value = exp.llvm_value;
-    scoper->setSymbol(dest.id, dest, dest.isGlobal);
-
+    if (!dest.isArr) {
+        dest.llvm_value = exp.llvm_value;
+        scoper->setSymbol(dest.id, dest, dest.isGlobal);
+    }
     return true;
 }
 
@@ -714,8 +715,21 @@ bool Parser::destination(Symbol &id) {
         return false;
     }
 
-    if (!arrayIndexHelper(id)) {
+    Symbol ind;
+    if (!arrayIndexHelper(id, ind)) {
         return false;
+    }
+
+    // Code gen: Get array destination address
+    if (id.isIndexed) {
+        llvm::Value *zeroVal = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+        
+        // Get pointer to the element of the array
+        id.llvm_address = llvm_builder->CreateInBoundsGEP(
+            id.llvm_address,
+            {zeroVal, ind.llvm_value});
     }
     return true;
 }
@@ -1266,10 +1280,11 @@ bool Parser::procCallOrName(Symbol &id) {
         }
 
         // Check if array access
-        if (!arrayIndexHelper(id)) {
+        Symbol ind;
+        if (!arrayIndexHelper(id, ind)) {
             return false;
         }
-        if (!nameCodeGen(id)) {
+        if (!nameCodeGen(id, ind)) {
             return false;
         }
     }
@@ -1301,10 +1316,11 @@ bool Parser::name(Symbol &id) {
         return false;
     }
 
-    if (!arrayIndexHelper(id)) {
+    Symbol ind;
+    if (!arrayIndexHelper(id, ind)) {
         return false;
     }
-    if (!nameCodeGen(id)) {
+    if (!nameCodeGen(id, ind)) {
         return false;
     }
     return true;
@@ -1313,13 +1329,12 @@ bool Parser::name(Symbol &id) {
 /* Handle array access index
  * [ [ <expression> ] ]
  */
-bool Parser::arrayIndexHelper(Symbol &id) {
+bool Parser::arrayIndexHelper(Symbol &id, Symbol &ind) {
     debugParseTrace("Index");
 
     // Optional
     if (isTokenType(T_LBRACKET)) {
-        Symbol exp;
-        if (!expression(exp)) {
+        if (!expression(ind)) {
             return false;
         }
 
@@ -1327,7 +1342,7 @@ bool Parser::arrayIndexHelper(Symbol &id) {
         if (!id.isArr) {
             error("\'" + id.id + "\' is not an array, and cannot be indexed");
             return false;
-        } else if (exp.type != TYPE_INT) {
+        } else if (ind.type != TYPE_INT) {
             error("Array index must be type integer");
             return false;
         }
@@ -1340,10 +1355,10 @@ bool Parser::arrayIndexHelper(Symbol &id) {
             *llvm_context,
             llvm::APInt(32, id.arrSize, true));
         llvm::Value *ltBound = llvm_builder->CreateICmpSLT(
-            exp.llvm_value, 
+            ind.llvm_value, 
             boundVal);
         llvm::Value *gteZero = llvm_builder->CreateICmpSGE(
-            exp.llvm_value,
+            ind.llvm_value,
             zeroVal);
         llvm::Value *cond = llvm_builder->CreateAnd(ltBound, gteZero);
         
@@ -1372,9 +1387,22 @@ bool Parser::arrayIndexHelper(Symbol &id) {
     return true;
 }
 
-bool Parser::nameCodeGen(Symbol &id) {
+bool Parser::nameCodeGen(Symbol &id, Symbol &ind) {
+    if (id.isArr) {
+        if (!id.isIndexed) {
+            error("Missing index to access array");
+            return false;
+        }
 
-    // TODO Arrays
+        llvm::Value *zeroVal = llvm::ConstantInt::get(
+            *llvm_context,
+            llvm::APInt(32, 0, true));
+        
+        // Get pointer to the element of the array
+        id.llvm_address = llvm_builder->CreateInBoundsGEP(
+            id.llvm_address,
+            {zeroVal, ind.llvm_value});
+    }
     id.llvm_value = llvm_builder->CreateLoad(getLLVMType(id.type), id.llvm_address);
     return true;
 }
