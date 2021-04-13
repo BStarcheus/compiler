@@ -2,14 +2,14 @@ program test_program is
     variable out : integer;
     
     procedure test : integer()
-        variable b : bool;
-        variable f : float;
+        variable b : book;     // Error, so it will resync at the semicolon
+        variable f : float;    // and all following lines are correctly parsed
         variable s : string;
         variable i : integer;
         variable result : integer;
     begin
         s := "Hello there";
-        if (s <= s) then
+        if (s == s) then
             result := -1;
             return result;
         end if;

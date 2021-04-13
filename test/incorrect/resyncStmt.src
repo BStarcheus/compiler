@@ -9,7 +9,7 @@ program test_program is
         variable result : integer;
     begin
         s := "Hello there";
-        if (s <= s) then
+        if (s == s) then
             result := -1;
             return result;
         end if;
@@ -17,5 +17,6 @@ program test_program is
 	    return result;
     end procedure;
 begin
-    out := test();
+    out := test(out); // Error, so it will resync at the semicolon
+    out := test();    // and this last line is correctly parsed
 end program.

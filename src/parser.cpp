@@ -150,6 +150,34 @@ void Parser::debugParseTrace(std::string msg) {
     }
 }
 
+/* If an error occurred, find a good point to continue the parse.
+ * Scan tokens until one from the vector is found.
+ */
+bool Parser::resync(std::vector<TokenType> &tok) {
+    debugParseTrace("Resync");
+    std::vector<TokenType> alwaysCheck = {T_PERIOD, T_EOF};
+
+    while (errorFlag) {
+        // Check if the current token is in either vector
+        for (auto &t: tok) {
+            if (token.type == t) {
+                errorFlag = false;
+                break;
+            }
+        }
+        for (auto &t: alwaysCheck) {
+            if (token.type == t) {
+                return false;
+            }
+        }
+
+        // Ignore current token and get the next
+        token = scanner->scan();
+    }
+    return true;
+}
+
+
 /* Check if the current token is of type t
  * If it is, scan for the next token and store it
  */
@@ -1560,6 +1588,8 @@ bool Parser::string(Symbol &str) {
 /* Helper for ( <declaration> ; )*
  */
 bool Parser::declarationBlockHelper() {
+    std::vector<TokenType> tok = {T_BEGIN, T_SEMICOLON};
+
     // Zero or more declarations
     while (declaration()) {
         if (!isTokenType(T_SEMICOLON)) {
@@ -1567,18 +1597,28 @@ bool Parser::declarationBlockHelper() {
             return false;
         }
     }
+    if (errorFlag && resync(tok)) {
+        // Not an ideal solution but it works in some resync cases
+        return declarationBlockHelper();
+    }
     return !errorFlag;
 }
 
 /* Helper for ( <statement> ; )*
  */
 bool Parser::statementBlockHelper() {
+    std::vector<TokenType> tok = {T_END, T_SEMICOLON};
+
     // Zero or more statements
     while (statement()) {
         if (!isTokenType(T_SEMICOLON)) {
             error("Missing \';\' after statement");
             return false;
         }
+    }
+    if (errorFlag && resync(tok)) {
+        // Not an ideal solution but it works in some resync cases
+        return statementBlockHelper();
     }
     return !errorFlag;
 }

@@ -23,6 +23,8 @@ class Parser {
         void debug(std::string msg);
         void debugParseTrace(std::string msg);
 
+        bool resync(std::vector<TokenType> &tok);
+
         bool isTokenType(TokenType t);
         bool program();
         bool programHeader();
