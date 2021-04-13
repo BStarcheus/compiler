@@ -6,11 +6,11 @@ for f in test/correct/*.src
 do
     if ./compiler $f; then
         echo Success: $f
-        ((success+=1))
+        success=$((success+1))
     else
         echo Failure: $f
     fi
-    ((total+=1))
+    total=$((total+1))
 done
 
 echo Total Success: $success / $total
