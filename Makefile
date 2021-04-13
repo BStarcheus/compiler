@@ -12,7 +12,7 @@ compiler: $(SRC) runtime
 runtime: src/runtime.c
 	$(C) -c src/runtime.c -o runtime.o
 
-parsetest: compiler
+test: compiler
 	./test/runtests.sh
 
 clean:

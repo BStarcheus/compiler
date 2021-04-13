@@ -40,7 +40,7 @@ Only run the compiler, which generates the out.s assembly file:
 
 ## Tests
 The test folder contains both correct and incorrect source code files. 
-You can run `make parsetest` to confirm that all the correct files successfully parse and compile.  
+You can run `make test` to confirm that all the correct files successfully parse and compile.  
 
 The incorrect folder also contains two resync test cases.
 They do correctly compile and run, but since they have invalid code I kept it in the incorrect folder.
