@@ -1,0 +1,31 @@
+// Test logical op done on whole arrays
+
+program arr is
+    variable tmp : integer;
+    variable arr : bool[4];
+    variable arr2: bool[4];
+
+    procedure printArr: integer(variable x : bool[4])
+        variable ind : integer;
+    begin
+        for (ind := 0; ind < 4)
+            tmp := putbool(x[ind]);
+            ind := ind + 1;
+        end for;
+	return 0;
+    end procedure;
+
+begin
+    arr[0] := 0;
+    arr[1] := 0;
+    arr[2] := 1;
+    arr[3] := 1;
+    arr2[0] := 0;
+    arr2[1] := 1;
+    arr2[2] := 0;
+    arr2[3] := 1;
+
+    // Creates bool array with result of logical elem | elem2 for each
+    tmp := printArr(arr | arr2);
+    tmp := printArr(arr & arr2);
+end program.
