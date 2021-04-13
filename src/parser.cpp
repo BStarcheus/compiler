@@ -492,62 +492,16 @@ bool Parser::procedureBody() {
 
         // Store arg value in address
         if (param.isArr) {
+            // Create a dummy symbol to pass
+            // Type must be same as param,
+            // otherwise it would've failed in compatibleTypeCheckCodeGen
+            Symbol tempArgVal("", T_IDENTIFIER, ST_VARIABLE, param.type);
+            tempArgVal.llvm_address = argVal;
             // argVal is an llvm_address to the array
+
             // Loop through each index and copy values from
             // argument to parameter (local) array
-
-            llvm::BasicBlock *arrArgCopyBB = llvm::BasicBlock::Create(*llvm_context, "arrArgCopy", func);
-            llvm::BasicBlock *arrArgCopyMergeBB = llvm::BasicBlock::Create(*llvm_context, "arrArgMerge", func);
-
-            // Initial index = 0
-            llvm::Value *indAddr = llvm_builder->CreateAlloca(
-                getLLVMType(TYPE_INT), 
-                nullptr,
-                "arrCopyInd");
-            llvm::Value *zeroVal = llvm::ConstantInt::get(
-                *llvm_context,
-                llvm::APInt(32, 0, true));
-            llvm::Value *index = zeroVal;
-            llvm_builder->CreateStore(index, indAddr);
-
-            // Max value of index is arrSize - 1
-            llvm::Value *loopEnd = llvm::ConstantInt::get(
-                *llvm_context,
-                llvm::APInt(32, param.arrSize, true));
-
-            llvm_builder->CreateBr(arrArgCopyBB);
-            llvm_builder->SetInsertPoint(arrArgCopyBB);
-
-            index = llvm_builder->CreateLoad(getLLVMType(TYPE_INT), indAddr);
-
-
-            // Get pointer to arg array element, and load the value
-            llvm::Value *argElemAddr = llvm_builder->CreateInBoundsGEP(
-                argVal,
-                {zeroVal, index});
-            llvm::Value *argElemVal = llvm_builder->CreateLoad(
-                getLLVMType(param.type), 
-                argElemAddr);
-
-            // Get pointer to param array element, and store the arg value
-            llvm::Value *paramElemAddr = llvm_builder->CreateInBoundsGEP(
-                param.llvm_address,
-                {zeroVal, index});
-            llvm_builder->CreateStore(argElemVal, paramElemAddr);
-            
-
-            // Increment index
-            llvm::Value *increment = llvm::ConstantInt::get(
-                *llvm_context,
-                llvm::APInt(32, 1, true));
-            index = llvm_builder->CreateAdd(index, increment);
-            llvm_builder->CreateStore(index, indAddr);
-            
-            // index < arr size
-            llvm::Value *cond = llvm_builder->CreateICmpSLT(index, loopEnd);
-            llvm_builder->CreateCondBr(cond, arrArgCopyBB, arrArgCopyMergeBB);
-
-            llvm_builder->SetInsertPoint(arrArgCopyMergeBB);
+            arrayAssignmentCodeGen(param, tempArgVal);
 
         } else {
             // argVal is an llvm_value
@@ -743,12 +697,19 @@ bool Parser::assignmentStatement() {
     }
 
     // Type check
-    if (!compatibleTypeCheck(dest, exp)) {
+    if (!compatibleTypeCheckCodeGen(dest, exp)) {
         return false;
     }
 
     // Code gen: Assignment
-    llvm_builder->CreateStore(exp.llvm_value, dest.llvm_address);
+    if (dest.isArr && !dest.isIndexed) {
+        // Both dest and exp are unindexed arrays
+        // Copy element by element
+        arrayAssignmentCodeGen(dest, exp);
+
+    } else {
+        llvm_builder->CreateStore(exp.llvm_value, dest.llvm_address);
+    }
     
     // Update symbol
     if (!dest.isArr) {
@@ -1016,7 +977,7 @@ bool Parser::returnStatement() {
     if (proc.type == TYPE_UNK) {
         error("Return statements must be within a procedure");
         return false;
-    } else if (!compatibleTypeCheck(proc, exp)) {
+    } else if (!compatibleTypeCheckCodeGen(proc, exp)) {
         return false;
     }
 
@@ -1495,7 +1456,7 @@ bool Parser::argumentList(Symbol &id, std::vector<llvm::Value*> &argList) {
         return false;
 
     // Check type match to param
-    } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
+    } else if (!compatibleTypeCheckCodeGen(id.params[argInd], arg)) {
         return false;
     }
     
@@ -1523,7 +1484,7 @@ bool Parser::argumentList(Symbol &id, std::vector<llvm::Value*> &argList) {
             return false;
 
         // Check type match to param
-        } else if (!compatibleTypeCheck(id.params[argInd], arg)) {
+        } else if (!compatibleTypeCheckCodeGen(id.params[argInd], arg)) {
             return false;
         }
         
@@ -1633,7 +1594,7 @@ bool Parser::arithmeticTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     if ((lhs.isArr && !lhs.isIndexed) ||
         (rhs.isArr && !rhs.isIndexed)) {
         // Unindexed arrays do op on whole array
-        return arrayTypeCheckCodeGen(lhs, rhs, op);
+        return arrayOpTypeCheckCodeGen(lhs, rhs, op);
 
     } else if (lhs.type == TYPE_INT) {
         if (rhs.type == TYPE_FLOAT) {
@@ -1709,7 +1670,7 @@ bool Parser::relationTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     if ((lhs.isArr && !lhs.isIndexed) ||
         (rhs.isArr && !rhs.isIndexed)) {
         // Unindexed arrays do op on whole array
-        return arrayTypeCheckCodeGen(lhs, rhs, op);
+        return arrayOpTypeCheckCodeGen(lhs, rhs, op);
 
     } else if (lhs.type == TYPE_INT) {
         if (rhs.type == TYPE_BOOL) {
@@ -1923,8 +1884,7 @@ bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     if ((lhs.isArr && !lhs.isIndexed) ||
         (rhs.isArr && !rhs.isIndexed)) {
         // Unindexed arrays do op on whole array
-        return arrayTypeCheckCodeGen(lhs, rhs, op);
-
+        return arrayOpTypeCheckCodeGen(lhs, rhs, op);
     }
 
     // Code gen
@@ -1946,63 +1906,10 @@ bool Parser::expressionTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
 /* Type checking for assignment operator =
  * and matching params to arguments
  */
-bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
+bool Parser::compatibleTypeCheckCodeGen(Symbol &dest, Symbol &exp) {
     debugParseTrace("Compatible type check");
     bool compatible = false;
-    // If types are compatible, convert exp to type of dest
-    // int <-> bool
-    // int <-> float
-    // Otherwise types must match exactly
-
-    // 0 used for comparisons below
-    llvm::Value *zeroVal = llvm::ConstantInt::get(
-        *llvm_context,
-        llvm::APInt(32, 0, true));
     
-    if (dest.type == exp.type) {
-        compatible = true;
-    } else if (dest.type == TYPE_INT) {
-        if (exp.type == TYPE_BOOL) {
-            compatible = true;
-            // Convert exp to int
-            exp.type = TYPE_INT;
-            exp.llvm_value = llvm_builder->CreateIntCast(
-                exp.llvm_value,
-                llvm_builder->getInt32Ty(),
-                false);
-
-        } else if (exp.type == TYPE_FLOAT) {
-            compatible = true;
-            // Convert exp to int
-            exp.type = TYPE_INT;
-            exp.llvm_value = llvm_builder->CreateFPToSI(
-                exp.llvm_value,
-                llvm_builder->getInt32Ty());
-        }
-    } else if (dest.type == TYPE_FLOAT) {
-        if (exp.type == TYPE_INT) {
-            compatible = true;
-            // Convert exp to float
-            exp.type = TYPE_FLOAT;
-            exp.llvm_value = llvm_builder->CreateSIToFP(
-                exp.llvm_value,
-                llvm_builder->getFloatTy());
-        }
-    } else if (dest.type == TYPE_BOOL) {
-        if (exp.type == TYPE_INT) {
-            compatible = true;
-            // Convert exp to bool
-            exp.type = TYPE_BOOL;
-            exp.llvm_value = llvm_builder->CreateICmpNE(
-                exp.llvm_value, 
-                zeroVal);
-        }
-    }
-
-    if (!compatible) {
-        error("Incompatible types " + getTypeName(dest.type) + " and " + getTypeName(exp.type));
-    }
-
     /* Check valid matching of isArr isIndexed
      * Valid:
      * var = var
@@ -2016,36 +1923,109 @@ bool Parser::compatibleTypeCheck(Symbol &dest, Symbol &exp) {
             // Both arrays
 
             if (dest.isIndexed != exp.isIndexed) {
-                error("Incompatible index match of arrays");
-                compatible = false;
+                error("Both arrays must be either indexed or unindexed");
+                return false;
             } else if (!dest.isIndexed) {
                 // Both are unindexed. Array lengths must match
                 if (dest.arrSize != exp.arrSize) {
                     error("Array lengths must match");
-                    compatible = false;
+                    return false;
+                }
+            } else { // Else both are indexed
+                // Types must match exactly
+                if (dest.type != exp.type) {
+                    error("Unindexed array types must match exactly");
+                    return false;
                 }
             }
-            // Else both are indexed
-
         } else {
             // One side is array
             // Array must be indexed
             if ((dest.isArr && !dest.isIndexed) ||
                 (exp.isArr && !exp.isIndexed)) {
                 error("Array is not indexed");
-                compatible = false;
+                return false;
             }
         }
     }
     // Else both are non-array
 
+
+    // 0 used for comparisons below
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
+
+
+    /* If types are compatible, convert exp to type of dest
+     * int <-> bool
+     * int <-> float
+     * Otherwise types must match exactly
+     * 
+     * If working with unindexed arrays, don't do the type conversion
+     * but still want to check that types are compatible
+     */
+    if (dest.type == exp.type) {
+        compatible = true;
+    } else if (dest.type == TYPE_INT) {
+        if (exp.type == TYPE_BOOL) {
+            compatible = true;
+
+            if (!(exp.isArr && !exp.isIndexed)) {
+                // Convert exp to int
+                exp.type = TYPE_INT;
+                exp.llvm_value = llvm_builder->CreateIntCast(
+                    exp.llvm_value,
+                    llvm_builder->getInt32Ty(),
+                    false);
+            }
+        } else if (exp.type == TYPE_FLOAT) {
+            compatible = true;
+
+            if (!(exp.isArr && !exp.isIndexed)) {
+                // Convert exp to int
+                exp.type = TYPE_INT;
+                exp.llvm_value = llvm_builder->CreateFPToSI(
+                    exp.llvm_value,
+                    llvm_builder->getInt32Ty());
+            }
+        }
+    } else if (dest.type == TYPE_FLOAT) {
+        if (exp.type == TYPE_INT) {
+            compatible = true;
+
+            if (!(exp.isArr && !exp.isIndexed)) {
+                // Convert exp to float
+                exp.type = TYPE_FLOAT;
+                exp.llvm_value = llvm_builder->CreateSIToFP(
+                    exp.llvm_value,
+                    llvm_builder->getFloatTy());
+            }
+        }
+    } else if (dest.type == TYPE_BOOL) {
+        if (exp.type == TYPE_INT) {
+            compatible = true;
+
+            if (!(exp.isArr && !exp.isIndexed)) {
+                // Convert exp to bool
+                exp.type = TYPE_BOOL;
+                exp.llvm_value = llvm_builder->CreateICmpNE(
+                    exp.llvm_value, 
+                    zeroVal);
+            }
+        }
+    }
+
+    if (!compatible) {
+        error("Incompatible types " + getTypeName(dest.type) + " and " + getTypeName(exp.type));
+    }
     return compatible;
 }
 
 
 /* Ops done on unindexed arrays affect the whole array
  */
-bool Parser::arrayTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
+bool Parser::arrayOpTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     debugParseTrace("Array type check code gen");
     // If both arrays, must be same size
     if (lhs.isArr && !lhs.isIndexed && rhs.isArr && !rhs.isIndexed &&
@@ -2222,6 +2202,68 @@ bool Parser::arrayTypeCheckCodeGen(Symbol &lhs, Symbol &rhs, Token &op) {
     return true;
 }
 
+
+/* Code gen to copy the elements from one array to another
+ * Used for assignment and copying args to local scope
+ */
+void Parser::arrayAssignmentCodeGen(Symbol &dest, Symbol &exp) {
+    debugParseTrace("Array assignment/copying");
+
+    llvm::Function *func = scoper->getCurrentProcedure().llvm_function;
+
+    llvm::BasicBlock *arrCopyBB = llvm::BasicBlock::Create(*llvm_context, "arrCopy", func);
+    llvm::BasicBlock *arrCopyMergeBB = llvm::BasicBlock::Create(*llvm_context, "arrCopyMerge", func);
+
+    // Initial index = 0
+    llvm::Value *indAddr = llvm_builder->CreateAlloca(
+        getLLVMType(TYPE_INT),
+        nullptr,
+        "arrCopyInd");
+    llvm::Value *zeroVal = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 0, true));
+    llvm::Value *index = zeroVal;
+    llvm_builder->CreateStore(index, indAddr);
+
+    // Max value of index is arrSize - 1
+    llvm::Value *loopEnd = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, dest.arrSize, true));
+
+    llvm_builder->CreateBr(arrCopyBB);
+    llvm_builder->SetInsertPoint(arrCopyBB);
+
+    index = llvm_builder->CreateLoad(getLLVMType(TYPE_INT), indAddr);
+
+
+    // Get pointer to array element, and load the value
+    llvm::Value *expElemAddr = llvm_builder->CreateInBoundsGEP(
+        exp.llvm_address,
+        {zeroVal, index});
+    llvm::Value *expElemVal = llvm_builder->CreateLoad(
+        getLLVMType(dest.type), 
+        expElemAddr);
+
+    // Get pointer to dest array element, and store the value
+    llvm::Value *destElemAddr = llvm_builder->CreateInBoundsGEP(
+        dest.llvm_address,
+        {zeroVal, index});
+    llvm_builder->CreateStore(expElemVal, destElemAddr);
+    
+
+    // Increment index
+    llvm::Value *increment = llvm::ConstantInt::get(
+        *llvm_context,
+        llvm::APInt(32, 1, true));
+    index = llvm_builder->CreateAdd(index, increment);
+    llvm_builder->CreateStore(index, indAddr);
+    
+    // index < arr size
+    llvm::Value *cond = llvm_builder->CreateICmpSLT(index, loopEnd);
+    llvm_builder->CreateCondBr(cond, arrCopyBB, arrCopyMergeBB);
+
+    llvm_builder->SetInsertPoint(arrCopyMergeBB);
+}
 
 
 llvm::Type *Parser::getLLVMType(Type t) {
