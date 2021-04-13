@@ -189,8 +189,7 @@ bool Parser::program() {
         return false;
     }
     if (!isTokenType(T_PERIOD)) {
-        error("Missing \'.\' at end of program");
-        return false;
+        warning("Missing \'.\' at end of program");
     }
     if (!isTokenType(T_EOF)) {
         return false;
