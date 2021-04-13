@@ -1,0 +1,28 @@
+program arr is
+    variable tmp : integer;
+    variable arr : integer[3];
+
+    procedure stuff : integer()
+        variable x : integer[3];
+    begin
+
+    tmp := getinteger();
+    x[0] := tmp;
+    arr[0] := tmp + 1;
+    x[1] := tmp - 1;
+    arr[1] := tmp + 10;
+    x[2] := tmp * 10;
+    arr[2] := tmp * 2;
+
+    tmp := putinteger(x[0]);
+    tmp := putinteger(x[1]);
+    tmp := putinteger(x[2]);
+    tmp := putinteger(arr[0]);
+    tmp := putinteger(arr[1]);
+    tmp := putinteger(arr[2]);
+
+	return 0;
+    end procedure;
+begin
+    tmp := stuff();
+end program.

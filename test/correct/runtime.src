@@ -1,0 +1,42 @@
+PROGRAM runtime IS
+    variable tmp : integer;
+
+	procedure test : integer()
+        variable i : integer;
+        variable f : float;
+        variable b : bool;
+        variable s : string;
+        variable tmp: bool;
+		begin
+
+        tmp := putstring("Enter an integer");
+        i := getInteger();
+        i := i + 1;
+        tmp := putinteger(i);
+
+        tmp := putstring("Enter a float");
+        f := getFloat();
+        f := f + 0.5;
+        tmp := putfloat(f);
+
+        tmp := putstring("Enter a bool");
+        b := getBool();
+        b := not b;
+        tmp := putbool(b);
+
+        tmp := putstring("Enter an integer to sqrt");
+        i := getInteger();
+        f := sqrt(i);
+        tmp := putfloat(f);
+
+        tmp := putstring("Enter a string");
+        s := getString();
+        tmp := putstring(s);
+		
+		return 0;
+	end procedure;
+
+
+	begin
+		tmp := test();
+end program.

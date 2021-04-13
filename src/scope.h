@@ -13,6 +13,8 @@ class Scope {
         void setSymbol(std::string s, Symbol sym);
         Symbol getSymbol(std::string s);
         bool hasSymbol(std::string s);
+        SymbolTable::iterator begin();
+        SymbolTable::iterator end();
         void printSymbolTable();
         Scope* prev;
     private:

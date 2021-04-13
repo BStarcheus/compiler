@@ -9,6 +9,9 @@ Symbol::Symbol() {
     isArr = false;
     arrSize = 0;
     isIndexed = false;
+    llvm_value = nullptr;
+    llvm_function = nullptr;
+    llvm_address = nullptr;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p) {
@@ -20,6 +23,9 @@ Symbol::Symbol(std::string id_p, TokenType tok_p) {
     isArr = false;
     arrSize = 0;
     isIndexed = false;
+    llvm_value = nullptr;
+    llvm_function = nullptr;
+    llvm_address = nullptr;
 }
 
 Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p) {
@@ -31,6 +37,9 @@ Symbol::Symbol(std::string id_p, TokenType tok_p, SymbolType sym_p, Type type_p)
     isArr = false;
     arrSize = 0;
     isIndexed = false;
+    llvm_value = nullptr;
+    llvm_function = nullptr;
+    llvm_address = nullptr;
 }
 
 // Get type name from type number

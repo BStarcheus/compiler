@@ -2,6 +2,8 @@
 #define SCOPEMANAGER_H
 
 #include "scope.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/IRBuilder.h"
 
 class ScopeManager {
     public:
@@ -14,11 +16,17 @@ class ScopeManager {
         Symbol getSymbol(std::string s, bool g);
         bool hasSymbol(std::string s);
         bool hasSymbol(std::string s, bool g);
+        SymbolTable::iterator getScopeBegin(bool g = false);
+        SymbolTable::iterator getScopeEnd(bool g = false);
+        bool isCurrentScopeGlobal();
 
         void setCurrentProcedure(Symbol proc);
         Symbol getCurrentProcedure();
 
         void printScope(bool g);
+
+        void insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *build);
+
         bool debugFlag;
         bool errorFlag;
     private:

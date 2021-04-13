@@ -25,11 +25,19 @@ bool Scope::hasSymbol(std::string s) {
     return table.find(s) != table.end();
 }
 
+SymbolTable::iterator Scope::begin() {
+    return table.begin();
+}
+
+SymbolTable::iterator Scope::end() {
+    return table.end();
+}
+
 void Scope::printSymbolTable() {
-    std::cout << std::endl;
-    for (SymbolTable::iterator it = table.begin(); it != table.end(); ++it) {
-        std::cout << getTokenTypeName(it->second.tokenType) << " "\
-            << it->second.id << std::endl;
+    std::cout << std::endl << "Scope Symbols:" << std::endl;
+    for (auto const &sym: table) {
+        std::cout << getTokenTypeName(sym.second.tokenType) << " "\
+            << sym.second.id << std::endl;
     }
     std::cout << std::endl;
 }

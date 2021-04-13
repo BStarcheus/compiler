@@ -1,4 +1,5 @@
 #include "scopeManager.h"
+#include <iostream>
 
 ScopeManager::ScopeManager(bool dbg) {
     debugFlag = dbg;
@@ -28,38 +29,59 @@ ScopeManager::ScopeManager(bool dbg) {
     global->setSymbol("false", Symbol("false", T_FALSE, ST_KEYWORD, TYPE_BOOL));
 
 
-    // TODO Properly add after runtime funcs created
-    global->setSymbol("getbool", Symbol("getbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL));
-    global->setSymbol("getinteger", Symbol("getinteger", T_IDENTIFIER, ST_PROCEDURE, TYPE_INT));
-    global->setSymbol("getfloat", Symbol("getfloat", T_IDENTIFIER, ST_PROCEDURE, TYPE_FLOAT));
-    global->setSymbol("getstring", Symbol("getstring", T_IDENTIFIER, ST_PROCEDURE, TYPE_STRING));
+    // Insert runtime function symbols
+    Symbol s;
+    s = Symbol("getbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.isGlobal = true;
+    global->setSymbol("getbool", s);
+
+    s = Symbol("getinteger", T_IDENTIFIER, ST_PROCEDURE, TYPE_INT);
+    s.isGlobal = true;
+    global->setSymbol("getinteger", s);
+
+    s = Symbol("getfloat", T_IDENTIFIER, ST_PROCEDURE, TYPE_FLOAT);
+    s.isGlobal = true;
+    global->setSymbol("getfloat", s);
+
+    s = Symbol("getstring", T_IDENTIFIER, ST_PROCEDURE, TYPE_STRING);
+    s.isGlobal = true;
+    global->setSymbol("getstring", s);
     
-    Symbol s = Symbol("putbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s = Symbol("putbool", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_BOOL));
     global->setSymbol("putbool", s);
 
     s = Symbol("putinteger", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_INT));
     global->setSymbol("putinteger", s);
 
     s = Symbol("putfloat", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_FLOAT));
     global->setSymbol("putfloat", s);
 
     s = Symbol("putstring", T_IDENTIFIER, ST_PROCEDURE, TYPE_BOOL);
+    s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_STRING));
     global->setSymbol("putstring", s);
 
     s = Symbol("sqrt", T_IDENTIFIER, ST_PROCEDURE, TYPE_FLOAT);
+    s.isGlobal = true;
     s.params.push_back(Symbol("value", T_IDENTIFIER, ST_VARIABLE, TYPE_INT));
     global->setSymbol("sqrt", s);
+
+    s = Symbol("_outOfBoundsError", T_IDENTIFIER, ST_PROCEDURE, TYPE_UNK);
+    s.isGlobal = true;
+    global->setSymbol("_outOfBoundsError", s);
 }
 
 ScopeManager::~ScopeManager() {
-    if (global != local) {
-        delete global;
+    while (global != local) {
+        exitScope();
     }
-    delete local;
+    delete global;
 }
 
 // Enter a new local scope
@@ -74,6 +96,7 @@ void ScopeManager::newScope() {
 void ScopeManager::exitScope() {
     if (debugFlag) {
         printScope(false);
+        std::cout << "Scope exited" << std::endl << std::endl;
     }
 
     if (local != nullptr && local != global) {
@@ -124,6 +147,28 @@ bool ScopeManager::hasSymbol(std::string s, bool g) {
     }
 }
 
+// Get the begin iterator of the symbol table
+SymbolTable::iterator ScopeManager::getScopeBegin(bool g) {
+    if (g) {
+        return global->begin();
+    } else {
+        return local->begin();
+    }
+}
+
+// Get the end iterator of the symbol table
+SymbolTable::iterator ScopeManager::getScopeEnd(bool g) {
+    if (g) {
+        return global->end();
+    } else {
+        return local->end();
+    }
+}
+
+bool ScopeManager::isCurrentScopeGlobal() {
+    return global == local;
+}
+
 // Set the procedure symbol in the local scope for easy access
 void ScopeManager::setCurrentProcedure(Symbol proc) {
     local->setSymbol(_CUR_PROC, proc);
@@ -140,4 +185,81 @@ void ScopeManager::printScope(bool g) {
     } else {
         local->printSymbolTable();
     }
+}
+
+void ScopeManager::insertRuntimeFunctions(llvm::Module *mod, llvm::IRBuilder<> *build) {
+    Symbol s;
+    std::string str;
+    llvm::FunctionType *ft;
+    llvm::Function *func;
+
+    str = "getbool";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt1Ty(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "getinteger";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt32Ty(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "getfloat";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getFloatTy(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "getstring";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt8PtrTy(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "putbool";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt1Ty(), {build->getInt1Ty()}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "putinteger";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt1Ty(), {build->getInt32Ty()}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "putfloat";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt1Ty(), {build->getFloatTy()}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "putstring";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getInt1Ty(), {build->getInt8PtrTy()}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, str, *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "sqrt";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getFloatTy(), {build->getInt32Ty()}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "_sqrt", *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
+
+    str = "_outOfBoundsError";
+    s = global->getSymbol(str);
+    ft = llvm::FunctionType::get(build->getVoidTy(), {}, false);
+    func = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "outOfBoundsError", *mod);
+    s.llvm_function = func;
+    global->setSymbol(str, s);
 }

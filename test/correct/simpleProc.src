@@ -1,0 +1,34 @@
+Program MyTestProgram is
+
+variable i : integer;
+variable f : float;
+variable b : bool;
+variable s: string;
+
+procedure test : integer()
+    variable x : integer;
+    global variable y : float;
+    begin
+    x := 1;
+    if(true) then x := 1 + 1;
+    else x := 1 + 5;
+    end if;
+    return x;
+end procedure;
+
+procedure test2 : integer(variable r: integer, variable d: float)
+    begin
+    s := "S";
+    return r;
+end procedure;
+
+begin
+
+i := 100;
+
+if(101 > 100) then
+	i := 1110;
+end if;
+i:= 3+2;
+
+end program.

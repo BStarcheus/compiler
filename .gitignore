@@ -2,3 +2,7 @@
 compiler
 compiler.dSYM
 *.txt
+*.s
+*.o
+*.ll
+a.out

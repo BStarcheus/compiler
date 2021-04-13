@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include "token.h"
+#include "llvm/IR/Value.h"
+#include "llvm/IR/Function.h"
 
 
 /* Type of the variable, or
@@ -68,5 +70,10 @@ struct Symbol {
 
     // Parameter list for procedures
     std::vector<Symbol> params;
+
+    // LLVM values
+    llvm::Value *llvm_value;
+    llvm::Function *llvm_function;
+    llvm::Value *llvm_address;
 };
 #endif

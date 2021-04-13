@@ -26,7 +26,7 @@ class Scanner {
 
         void error(std::string msg);
         void warning(std::string msg);
-        void debug(std::string msg);
+        void debug(std::string msg, bool ovrd = false);
         void debug(Token t);
     private:
         ScopeManager* scoper;
