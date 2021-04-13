@@ -1042,6 +1042,7 @@ bool Parser::expression_p(Symbol &exp) {
         isTokenType(T_OR)) {
         Symbol rhs;
         if (!arithOp(rhs)) {
+            error("Missing operand");
             return false;
         }
 
@@ -1082,6 +1083,7 @@ bool Parser::arithOp_p(Symbol &arOp) {
         isTokenType(T_MINUS)) {
         Symbol rhs;
         if (!relation(rhs)) {
+            error("Missing operand");
             return false;
         }
 
@@ -1132,6 +1134,7 @@ bool Parser::relation_p(Symbol &rel) {
         isTokenType(T_NOT_EQUAL)) {
         Symbol rhs;
         if (!term(rhs)) {
+            error("Missing operand");
             return false;
         }
 
@@ -1177,6 +1180,7 @@ bool Parser::term_p(Symbol &trm) {
         isTokenType(T_DIVIDE)) {
         Symbol rhs;
         if (!factor(rhs)) {
+            error("Missing operand");
             return false;
         }
 
