@@ -5,10 +5,6 @@ Scope::Scope() {
     prev = nullptr;
 }
 
-Scope::~Scope() {
-    
-}
-
 void Scope::setSymbol(std::string s, Symbol sym) {
     table[s] = sym;
 }
