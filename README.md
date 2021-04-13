@@ -36,3 +36,21 @@ And run the executable `./a.out`
 ### Other Use
 Only run the compiler, which generates the out.s assembly file:
 - `./compiler <file> <options>`
+
+
+## Tests
+The test folder contains both correct and incorrect source code files. 
+You can run `make parsetest` to confirm that all the correct files successfully parse and compile.  
+
+The incorrect folder also contains two resync test cases.
+They do correctly compile and run, but since they have invalid code I kept it in the incorrect folder.
+The resync capabilities are very limited, but do work for those test cases.
+
+
+## Next Steps
+There are several improvements that could be made but probably won't due to time constraints.
+- Track whether a variable is initialized. Don't allow references before inialization.
+- Handle any remaining memory leaks
+- Refactor some repetitive code (which was only kept because it allowed more precise error logging)
+- Improve the resynchronization point system
+- Improve usefulness of some log messages
