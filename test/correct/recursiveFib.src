@@ -6,31 +6,20 @@ variable max : integer;
 variable out: bool;
 
 procedure Fib : integer(variable val :integer)
-    variable ret : integer;
-    variable tmp : integer[2];
 
 	procedure Sub : integer(variable val1 : integer)
-        variable val2 : integer;
 		begin
-			val2 := val2 - val1;
-			return val2;
+			return val1 - 1;
 		end procedure;
 
 	begin
 	if(val == 0) then
-		ret := 0;
-		return ret;
+		return 0;
 	end if;
 	if(val == 1) then
-		ret := 1;
-		return ret;
-	end if; // Remove line
-	val := Sub(1);
-	tmp[0] := Fib(val);
-	val := Sub(1);
-	tmp[1] := Fib(val);
-	ret := tmp[0] + tmp[1];
-	return ret;
+		return 1;
+	end if;
+	return Fib(Sub(Sub(val))) + Fib(Sub(val));
 end procedure;
 
 
