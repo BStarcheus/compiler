@@ -6,9 +6,9 @@ I chose to use C++ because I wanted to get more experience with the language.
 Before this, I had only used it in two previous UC courses, but not at all in work or personal projects.
 
 ## Requirements
-- C++11
+- c++11 std library
 - make
-- clang
+- clang / clang++
 - LLVM 11 (llvm-config in system path)
 
 ## Usage
